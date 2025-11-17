@@ -1,0 +1,4 @@
+export CC=clang
+export CXX=clang++
+export CFLAGS="-fembed-bitcode -Qunused-arguments"
+export CXXFLAGS="-fembed-bitcode -Qunused-arguments"

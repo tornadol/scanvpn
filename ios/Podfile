@@ -1,0 +1,148 @@
+# Podfile — minimal, stable for Simulator builds (Metro dev)
+require Pod::Executable.execute_command('node', ['-p',
+  'require.resolve(
+    "react-native/scripts/react_native_pods.rb",
+    {paths: [process.argv[1]]},
+  )', __dir__]).strip
+
+platform :ios, '16.0'
+prepare_react_native_project!
+
+linkage = ENV['USE_FRAMEWORKS']
+if linkage
+  Pod::UI.puts "Configuring Pod with #{linkage}ally linked Frameworks".green
+  use_frameworks! :linkage => linkage.to_sym
+end
+
+target 'ScanVPN' do
+  config = use_native_modules!
+
+  use_react_native!(
+    :path => config[:reactNativePath],
+    :hermes_enabled => true,    # re-enable Hermes for full functionality
+    :fabric_enabled => true,    # keep old architecture while stabilizing
+    :new_arch_enabled => true,  # disable New Architecture for now
+    :app_path => "#{Pod::Config.instance.installation_root}/.."
+  )
+
+  pod 'DoubleConversion', :podspec => '../node_modules/react-native/third-party-podspecs/DoubleConversion.podspec'
+  pod 'RCT-Folly', :podspec => '../node_modules/react-native/third-party-podspecs/RCT-Folly.podspec'
+
+  # WireGuard VPN module
+  pod 'react-native-wireguard-vpn-connect', :path => '../node_modules/react-native-wireguard-vpn-connect'
+
+  pod 'glog', :podspec => '../node_modules/react-native/third-party-podspecs/glog.podspec'
+  post_install do |installer|
+    react_native_post_install(
+      installer,
+      config[:reactNativePath],
+      :mac_catalyst_enabled => false
+    )
+
+    # Reasonable default build settings to avoid common Xcode 15/script sandbox issues
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |cfg|
+        cfg.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
+        cfg.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
+        cfg.build_settings['LIBRARY_SEARCH_PATHS'] = ['$(inherited)', '$(BUILD_DIR)/$(CONFIGURATION)$(EFFECTIVE_PLATFORM_NAME)']
+
+        # Add codegen header search paths for New Architecture
+        # Codegen files are in ios/build/generated/ios relative to the project root
+        codegen_path = File.join(installer.sandbox.root.parent, 'build', 'generated', 'ios')
+        if Dir.exist?(codegen_path)
+          # Use relative path from Pods root (SRCROOT is the ios directory)
+          relative_codegen_path = '$(SRCROOT)/build/generated/ios'
+          current_paths = cfg.build_settings['HEADER_SEARCH_PATHS']
+          if current_paths.is_a?(Array)
+            cfg.build_settings['HEADER_SEARCH_PATHS'] = current_paths + ["\"#{relative_codegen_path}\""]
+          else
+            # If it's a string (from xcconfig), convert to array
+            cfg.build_settings['HEADER_SEARCH_PATHS'] = ['$(inherited)', "\"#{relative_codegen_path}\""]
+          end
+        end
+
+        # Comprehensive Hermes-specific sandbox fixes
+        if target.name.start_with?('hermes') || target.name.include?('Hermes')
+          cfg.build_settings['CODE_SIGNING_ALLOWED'] = 'NO'
+          cfg.build_settings['ENABLE_BITCODE'] = 'NO'
+          cfg.build_settings['STRIP_INSTALLED_PRODUCT'] = 'NO'
+          cfg.build_settings['COPY_PHASE_STRIP'] = 'NO'
+          cfg.build_settings['VALIDATE_PRODUCT'] = 'NO'
+          cfg.build_settings['DEBUG_INFORMATION_FORMAT'] = 'dwarf'
+          cfg.build_settings['ENABLE_STRICT_OBJC_MSGSEND'] = 'NO'
+          cfg.build_settings['GCC_PRECOMPILE_PREFIX_HEADER'] = 'NO'
+          cfg.build_settings['OTHER_LDFLAGS'] = '$(inherited) -ObjC'
+          cfg.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+          cfg.build_settings['FRAMEWORK_SEARCH_PATHS'] = ['$(inherited)', '$(DEVELOPER_DIR)/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks']
+
+          # Disable duplicate Hermes framework build
+          if target.name == 'hermes-engine'
+            cfg.build_settings['HERMES_ENGINE_BUILD_FRAMEWORKS'] = 'NO'
+            cfg.build_settings['HERMES_ENGINE_SKIP_SCRIPT_PHASES'] = 'YES'
+          end
+        end
+
+        # Fix for all targets that use XCFrameworks
+        if target.name.include?('hermes-engine') || target.name.include?('React-hermes')
+          cfg.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = ''
+          cfg.build_settings['ONLY_ACTIVE_ARCH'] = 'NO'
+          cfg.build_settings['VALID_ARCHS'] = 'x86_64 arm64'
+          cfg.build_settings['BUILD_LIBRARY_FOR_DISTRIBUTION'] = 'YES'
+        end
+      end
+    end
+
+    # Remove duplicate Hermes framework build phase to prevent conflicts
+    installer.pods_project.targets.each do |target|
+      if target.name == 'hermes-engine'
+        target.build_phases.each do |phase|
+          if phase.respond_to?(:name) && (phase.name.include?('Script') || phase.name.include?('Framework'))
+            target.build_phases.delete(phase)
+          end
+        end
+      end
+    end
+
+    # Fix the standard RN bundle phase script path problem if present
+    installer.pods_project.targets.each do |target|
+      target.build_phases.each do |phase|
+        next unless phase.respond_to?(:name)
+        if phase.name&.include?("Bundle React Native code")
+          # keep script simple and robust
+          phase.shell_script = phase.shell_script.gsub('with-environment.sh', 'set -e')
+        end
+      end
+    end
+
+    # Fix duplicate Hermes framework issue by removing direct copy phases
+    installer.pods_project.targets.each do |target|
+      if target.name == 'ScanVPN'
+        target.build_phases.each do |phase|
+          # Remove any copy phases that might conflict with Embed Pods Frameworks
+          if phase.respond_to?(:name) && phase.name.include?("Copy") && phase.name.include?("Framework")
+            target.build_phases.delete(phase)
+          end
+        end
+      end
+    end
+
+    # Remove hermesvm framework references from xcfilelist files when Hermes is disabled
+    # Since :hermes_enabled => false is set above, always remove these references
+    framework_files = [
+      'Pods-ScanVPN-frameworks-Debug-input-files.xcfilelist',
+      'Pods-ScanVPN-frameworks-Debug-output-files.xcfilelist',
+      'Pods-ScanVPN-frameworks-Release-input-files.xcfilelist',
+      'Pods-ScanVPN-frameworks-Release-output-files.xcfilelist'
+    ]
+
+    framework_files.each do |filename|
+      file_path = File.join(installer.sandbox.root, 'Target Support Files', 'Pods-ScanVPN', filename)
+      if File.exist?(file_path)
+        content = File.read(file_path)
+        # Remove hermesvm framework references
+        content = content.lines.reject { |line| line.include?('hermesvm') }.join
+        File.write(file_path, content)
+      end
+    end
+  end
+end
