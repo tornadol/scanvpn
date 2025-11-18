@@ -1,4 +1,7 @@
 {
   "name": "ScanVPN",
-  "displayName": "ScanVPN"
+  "displayName": "ScanVPN",
+  "expo": {
+    "userInterfaceStyle": "automatic"
+  }
 }

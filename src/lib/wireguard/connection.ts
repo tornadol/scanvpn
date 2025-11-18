@@ -4,78 +4,816 @@ import {
   ConnectionResult,
   ConnectionInfo,
 } from '../types/wireguard';
-import WireGuardVpnModule from 'react-native-wireguard-vpn-connect';
-// // Check if we're running in Expo Go
-// const isExpoGo = false;
-// const isDevelopmentBuild = !isExpoGo;
+import { setActiveProfileId, markProfileUsed } from './storage';
+import { fixVPNConfig } from './configFixer';
+import { ToastManager } from '@/components/nativewindui/Toast';
 
-// // Try to import WireGuard module (will fail in Expo Go)
-// let WireGuardVpnModule: any = null;
-// let hasNativeModule = false;
+// Try to import WireGuard module
+let WireGuardVpnModule: any = null;
+let hasNativeModule = false;
 
-// if (isDevelopmentBuild) {
-//   try {
-//     WireGuardVpnModule = wgModule.default || wgModule;
-//     hasNativeModule = true;
-//     console.log(
-//       'WireGuard native module loaded successfully (Development Build)',
-//     );
-//   } catch (error) {
-//     console.log('WireGuard native module not available:', error);
-//     hasNativeModule = false;
-//   }
-// } else {
-//   console.log(
-//     'Running without native WireGuard module - VPN will not be available',
-//   );
-//   hasNativeModule = false;
-// }
+try {
+  // Import from the correct package name
+  const wgModule = require('react-native-wireguard-vpn-connect');
+  WireGuardVpnModule = wgModule.default || wgModule;
 
-// /**
-//  * Native VPN Connection Manager
-//  *
-//  * This implementation requires the native WireGuard module:
-//  * - Development Builds: Uses native WireGuard module for real VPN tunnels
-//  * - iOS: NEVPNManager / Network Extension
-//  * - Android: VpnService API
-//  *
-//  * No fallback to external WireGuard app is provided.
-//  */
-
-// type ConnectionChangeCallback = (status: ConnectionStatus) => void;
-
-// class ConnectionManager {
-//   private currentStatus: ConnectionStatus = 'disconnected';
-//   private connectionInfo: ConnectionInfo | null = null;
-//   private listeners: Set<ConnectionChangeCallback> = new Set();
-//   private isInitialized = false;
-//   private hasNativeModule = hasNativeModule;
-
-//   /**
-//    * Initialize the VPN service
-//    */
-//   async initialize(): Promise<void> {
-//     if (!this.isInitialized) {
-//       if (this.hasNativeModule && WireGuardVpnModule) {
-//         try {
-//           await WireGuardVpnModule.initialize();
-//           this.isInitialized = true;
-//           console.log('WireGuard VPN service initialized successfully');
-//         } catch (error) {
-//           console.error('Failed to initialize VPN service:', error);
-
-//           this.isInitialized = true;
-//           this.hasNativeModule = false; // Mark as unavailable
-//         }
-//       } else {
-//         this.isInitialized = true;
-//         console.log('WireGuard VPN module not available');
-//       }
-//     }
-//   }
-// }
-
-export async function testModuleReplacement() {
-  // const test = await WireGuardVpnModule.initialize();
-  // console.log('test initialize', test);
+  // Verify the module has the required methods
+  if (
+    WireGuardVpnModule &&
+    typeof WireGuardVpnModule.initialize === 'function'
+  ) {
+    hasNativeModule = true;
+    console.log('WireGuard native module loaded successfully');
+  } else {
+    console.warn('WireGuard module loaded but missing required methods');
+    hasNativeModule = false;
+  }
+} catch (error) {
+  console.error('WireGuard native module not available:', error);
+  hasNativeModule = false;
 }
+
+/**
+ * Native VPN Connection Manager
+ *
+ * This implementation requires the native WireGuard module:
+ * - iOS: NEVPNManager / Network Extension
+ * - Android: VpnService API
+ */
+
+class ConnectionManager {
+  private currentStatus: ConnectionStatus = 'disconnected';
+  private connectionInfo: ConnectionInfo | null = null;
+  private isInitialized = false;
+  private hasNativeModule = hasNativeModule;
+
+  /**
+   * Initialize the VPN service
+   */
+  async initialize(): Promise<void> {
+    if (!this.isInitialized) {
+      if (this.hasNativeModule && WireGuardVpnModule) {
+        try {
+          console.log('Initializing WireGuard VPN service...');
+
+          if (typeof WireGuardVpnModule.initialize !== 'function') {
+            throw new Error('WireGuard module missing initialize method');
+          }
+
+          await WireGuardVpnModule.initialize();
+          this.isInitialized = true;
+          console.log('✅ WireGuard VPN service initialized successfully');
+        } catch (error) {
+          let errorMessage = 'Failed to initialize VPN service';
+          if (error instanceof Error) {
+            errorMessage = error.message;
+          }
+          const isStaleConfigError =
+            errorMessage.includes('stale') ||
+            errorMessage.includes('configuration is stale');
+
+          if (isStaleConfigError) {
+            console.log(
+              'ℹ️ VPN configuration is stale (will be refreshed on connection)',
+            );
+
+            this.isInitialized = true;
+            return;
+          }
+
+          console.error('❌ Failed to initialize VPN service:', error);
+
+          // Provide specific error message
+          const isPermissionError =
+            errorMessage.includes('permission') ||
+            errorMessage.includes('Permission') ||
+            errorMessage.includes('denied') ||
+            errorMessage.includes('not authorized') ||
+            errorMessage.includes('authorization') ||
+            errorMessage.toLowerCase().includes('vpn configuration');
+
+          if (isPermissionError) {
+            ToastManager.getInstance().showToast(
+              'VPN permission required. Go to Settings > General > VPN & Device Management to enable VPN access.',
+              'error',
+            );
+            console.log(
+              '📱 VPN Permission Error - User needs to enable VPN in iOS Settings',
+            );
+          } else if (
+            errorMessage.includes('NetworkExtension') ||
+            errorMessage.includes('NEVPNManager')
+          ) {
+            ToastManager.getInstance().showToast(
+              'Network Extension not configured. Please rebuild the app with proper entitlements.',
+              'error',
+            );
+          } else {
+            ToastManager.getInstance().showToast(
+              `Failed to initialize VPN: ${errorMessage}`,
+              'error',
+            );
+          }
+
+          this.isInitialized = true;
+
+          // Only mark as unavailable if it's a critical linking/module error
+          if (
+            errorMessage.includes('linked') ||
+            errorMessage.includes('module') ||
+            errorMessage.includes('LINKING_ERROR')
+          ) {
+            this.hasNativeModule = false;
+            console.warn('Marking WireGuard module as unavailable');
+          }
+        }
+      } else {
+        this.isInitialized = true;
+        console.warn(
+          '⚠️ WireGuard VPN module not available - check if module is properly linked',
+        );
+      }
+    }
+  }
+
+  /**
+   * Check if WireGuard VPN is supported on this device
+   */
+  async isSupported(): Promise<boolean> {
+    if (this.hasNativeModule && WireGuardVpnModule) {
+      try {
+        const supported = await WireGuardVpnModule.isSupported();
+        console.log('Native VPN support check:', supported);
+        return supported;
+      } catch (error) {
+        console.error('Error checking native VPN support:', error);
+        ToastManager.getInstance().showToast(
+          'VPN support check failed. Native WireGuard module is required.',
+          'error',
+        );
+        return false;
+      }
+    } else {
+      console.log('Native WireGuard module not available');
+      return false;
+    }
+  }
+
+  /**
+   * Get current connection status
+   * Note: VPN connections persist across app restarts, so we check actual status
+   * even if the manager hasn't been initialized yet.
+   */
+  async getStatus(): Promise<ConnectionStatus> {
+    // Try to initialize in background if not already initialized (non-blocking)
+    if (!this.isInitialized) {
+      this.initialize().catch(err => {
+        console.warn('Background initialization failed:', err);
+      });
+    }
+
+    // Check actual VPN status from native module (VPN persists across app restarts)
+    if (this.hasNativeModule && WireGuardVpnModule) {
+      try {
+        // Verify getStatus method exists
+        if (typeof WireGuardVpnModule.getStatus !== 'function') {
+          console.warn('WireGuard module missing getStatus method');
+          return this.currentStatus || 'disconnected';
+        }
+
+        const wgStatus: any = await WireGuardVpnModule.getStatus();
+
+        // Validate response
+        if (!wgStatus || typeof wgStatus !== 'object') {
+          console.warn('Invalid status response from native module:', wgStatus);
+          return this.currentStatus || 'disconnected';
+        }
+
+        // Map and cache the status
+        const mappedStatus = this.mapWireGuardStatus(wgStatus);
+        this.currentStatus = mappedStatus;
+
+        // If we got a valid status, mark as initialized (status check succeeded)
+        if (!this.isInitialized) {
+          this.isInitialized = true;
+          console.log('✅ Connection manager initialized via status check');
+        }
+
+        console.log('VPN Status:', {
+          raw: wgStatus,
+          mapped: mappedStatus,
+          isConnected: wgStatus.isConnected,
+          tunnelState: wgStatus.tunnelState,
+          wasInitialized: this.isInitialized,
+        });
+
+        return mappedStatus;
+      } catch (error) {
+        // Handle specific error types
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+
+        // Check if it's a critical error or just a transient issue
+        const isCriticalError =
+          errorMessage.includes('not linked') ||
+          errorMessage.includes('module not found') ||
+          errorMessage.includes('LINKING_ERROR');
+
+        if (isCriticalError) {
+          console.error('Critical error getting VPN status:', error);
+          this.hasNativeModule = false;
+          return 'disconnected';
+        }
+
+        // For transient errors, fall back to cached status
+        console.warn('Error getting VPN status (using cached):', errorMessage);
+
+        // If we have a cached status and it's not disconnected, use it
+        // (VPN might still be connected even if status check failed)
+        if (this.currentStatus && this.currentStatus !== 'disconnected') {
+          console.log('Using cached status:', this.currentStatus);
+          return this.currentStatus;
+        }
+
+        // Return disconnected if no cached status or error occurred
+        return 'disconnected';
+      }
+    } else {
+      // Module not available - return cached status or disconnected
+      console.log('VPN status check: Native module not available');
+      return this.currentStatus || 'disconnected';
+    }
+  }
+
+  /**
+   * Get detailed connection information
+   * Reconstructs connection info from active profile if VPN is connected but info is missing
+   */
+  async getConnectionInfo(): Promise<ConnectionInfo | null> {
+    // If we have cached connection info, return it
+    if (this.connectionInfo) {
+      return this.connectionInfo;
+    }
+
+    // If no cached info, check if VPN is actually connected
+    // If connected, reconstruct info from active profile
+    const currentStatus = await this.getStatus();
+    if (currentStatus === 'connected') {
+      try {
+        // Import here to avoid circular dependency
+        const { getActiveProfile } = await import('./storage');
+        const activeProfile = await getActiveProfile();
+
+        if (activeProfile && activeProfile.config) {
+          // Handle address as array or single string
+          const addresses = Array.isArray(
+            activeProfile.config.interface.address,
+          )
+            ? activeProfile.config.interface.address
+            : [activeProfile.config.interface.address];
+
+          // Reconstruct connection info from active profile
+          this.connectionInfo = {
+            status: 'connected',
+            profileId: activeProfile.id,
+            // Use lastUsed as connectedAt if available, otherwise use current time
+            connectedAt: activeProfile.lastUsed || new Date().toISOString(),
+            endpoint: activeProfile.config.peer?.endpoint,
+            virtualIP: addresses[0],
+          };
+
+          console.log(
+            '✅ Reconstructed connection info from active profile:',
+            this.connectionInfo,
+          );
+          return this.connectionInfo;
+        } else {
+          console.warn('⚠️ VPN is connected but no active profile found');
+        }
+      } catch (error) {
+        console.error('Error reconstructing connection info:', error);
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Connect to VPN with given configuration
+   */
+  async connect(
+    config: WireGuardConfig,
+    profileId: string,
+  ): Promise<ConnectionResult> {
+    // Prevent connecting if already connected or connecting
+    if (
+      this.currentStatus === 'connected' ||
+      this.currentStatus === 'connecting'
+    ) {
+      return {
+        success: false,
+        status: this.currentStatus,
+        error: 'Already connected or connecting',
+      };
+    }
+
+    try {
+      await this.initialize();
+
+      const isSupported = await this.isSupported();
+      if (!isSupported || !this.hasNativeModule || !WireGuardVpnModule) {
+        ToastManager.getInstance().showToast(
+          'WireGuard VPN is not supported on this device. Native VPN module is required.',
+          'error',
+        );
+        throw new Error('WireGuard VPN is not supported on this device');
+      }
+
+      this.updateStatus('connecting');
+
+      // Optionally request VPN permission, but don't fail if unavailable
+      if (typeof WireGuardVpnModule.requestVpnPermission === 'function') {
+        try {
+          await WireGuardVpnModule.requestVpnPermission();
+        } catch (permissionError) {
+          console.warn(
+            'VPN permission request failed (non-critical):',
+            permissionError,
+          );
+        }
+      }
+
+      // Validate config
+      const validation = this.validateConnectionConfig(config);
+      if (!validation.isValid) {
+        throw new Error(
+          `Invalid VPN configuration: ${validation.issues.join(', ')}`,
+        );
+      }
+
+      const wgConfig = this.convertToWireGuardConfig(config);
+      await WireGuardVpnModule.connect(wgConfig);
+
+      // Wait a moment for connection to start
+      await new Promise<void>(resolve => setTimeout(resolve, 1000));
+      let status = await WireGuardVpnModule.getStatus();
+      let mappedStatus = this.mapWireGuardStatus(status);
+
+      let tunnelState = status.tunnelState?.toUpperCase() || '';
+      let isConnected =
+        status.isConnected || tunnelState === 'UP' || tunnelState === 'ACTIVE';
+
+      // Retry up to 5 times if connecting
+      let attempts = 0;
+      while (
+        !isConnected &&
+        (tunnelState === 'CONNECTING' || mappedStatus === 'connecting') &&
+        attempts < 5
+      ) {
+        await new Promise<void>(resolve => setTimeout(resolve, 1000));
+        status = await WireGuardVpnModule.getStatus();
+        mappedStatus = this.mapWireGuardStatus(status);
+        tunnelState = status.tunnelState?.toUpperCase() || '';
+        isConnected =
+          status.isConnected ||
+          tunnelState === 'UP' ||
+          tunnelState === 'ACTIVE';
+        if (
+          tunnelState === 'INACTIVE' ||
+          tunnelState === 'DOWN' ||
+          tunnelState === 'ERROR'
+        ) {
+          break;
+        }
+        attempts++;
+      }
+
+      // If not connected, handle errors
+      if (!isConnected) {
+        let errorMsg =
+          status?.error ||
+          `Failed to establish VPN connection. Status: ${
+            tunnelState || 'UNKNOWN'
+          }`;
+
+        // Provide more helpful error if possible
+        let userFriendly =
+          tunnelState === 'INACTIVE' &&
+          (errorMsg.includes('extension') ||
+            errorMsg.includes('provider') ||
+            errorMsg.includes('bundle'))
+            ? 'Network Extension is required for VPN. Please check your app settings and configuration.'
+            : tunnelState === 'ERROR'
+            ? 'VPN connection error. Please check your configuration and network.'
+            : errorMsg;
+
+        ToastManager.getInstance().showToast(
+          userFriendly.split('\n')[0],
+          'error',
+        );
+
+        throw new Error(userFriendly);
+      }
+
+      // Final success actions
+      await markProfileUsed(profileId);
+      await setActiveProfileId(profileId);
+
+      this.connectionInfo = {
+        status: 'connected',
+        profileId,
+        connectedAt: new Date().toISOString(),
+        endpoint: config.peer.endpoint,
+        virtualIP: Array.isArray(config.interface.address)
+          ? config.interface.address[0]
+          : config.interface.address,
+      };
+      this.updateStatus('connected');
+
+      ToastManager.getInstance().showToast(
+        'VPN connected successfully',
+        'success',
+      );
+
+      return {
+        success: true,
+        status: 'connected',
+      };
+    } catch (error) {
+      this.updateStatus('error');
+      const message =
+        error instanceof Error ? error.message : 'Connection failed';
+      ToastManager.getInstance().showToast(
+        `VPN connection failed: ${message}`,
+        'error',
+      );
+      // Optionally mark module as unavailable if clear linking/module error
+      if (
+        typeof message === 'string' &&
+        (message.includes('linked') ||
+          message.includes('module') ||
+          message.includes('LINKING_ERROR'))
+      ) {
+        this.hasNativeModule = false;
+      }
+      return {
+        success: false,
+        status: 'error',
+        error: message,
+      };
+    }
+  }
+
+  /**
+   * Disconnect from VPN
+   */
+  async disconnect(): Promise<void> {
+    if (this.currentStatus === 'disconnected') {
+      return;
+    }
+
+    try {
+      this.updateStatus('disconnecting');
+
+      if (this.hasNativeModule && WireGuardVpnModule) {
+        try {
+          // Disconnect from real VPN
+          await WireGuardVpnModule.disconnect();
+          ToastManager.getInstance().showToast(
+            'VPN disconnected successfully',
+            'success',
+          );
+        } catch (nativeDisconnectError) {
+          console.error(
+            'Failed to disconnect from VPN:',
+            nativeDisconnectError,
+          );
+          ToastManager.getInstance().showToast(
+            'Failed to disconnect from VPN. Please check your device settings.',
+            'warning',
+          );
+          // Don't throw error, continue with cleanup
+          this.hasNativeModule = false;
+        }
+      } else {
+        ToastManager.getInstance().showToast(
+          'No active VPN connection to disconnect',
+          'info',
+        );
+      }
+
+      // Clear active profile
+      try {
+        await setActiveProfileId(null);
+      } catch (profileError) {
+        console.error('Failed to clear active profile:', profileError);
+        ToastManager.getInstance().showToast(
+          'Failed to clear active profile. Please check VPN settings.',
+          'warning',
+        );
+      }
+
+      // Clear connection info
+      this.connectionInfo = null;
+
+      this.updateStatus('disconnected');
+      ToastManager.getInstance().showToast(
+        'VPN disconnected successfully',
+        'success',
+      );
+    } catch (error) {
+      ToastManager.getInstance().showToast(
+        'Failed to disconnect from VPN. Please check device settings.',
+        'error',
+      );
+      this.updateStatus('error');
+      throw error;
+    }
+  }
+
+  /**
+   * Private: Update status
+   */
+  private updateStatus(status: ConnectionStatus): void {
+    this.currentStatus = status;
+  }
+
+  /**
+   * Validate VPN configuration for internet connectivity
+   */
+  private validateConnectionConfig(config: WireGuardConfig): {
+    isValid: boolean;
+    issues: string[];
+  } {
+    const issues: string[] = [];
+
+    // Check for required fields
+    if (!config.interface.privateKey) {
+      issues.push('Private key is missing');
+    }
+
+    if (!config.peer.publicKey) {
+      issues.push('Public key is missing');
+    }
+
+    if (!config.peer.endpoint) {
+      issues.push('Server endpoint is missing');
+    }
+
+    // Check endpoint format
+    const endpointRegex = /^[\w.-]+:\d+$/;
+    if (!endpointRegex.test(config.peer.endpoint)) {
+      issues.push(
+        'Server endpoint format is invalid (should be domain:port or ip:port)',
+      );
+    }
+
+    // Check interface addresses
+    if (!config.interface.address || config.interface.address.length === 0) {
+      issues.push('Interface address is missing');
+    }
+
+    // Check DNS configuration
+    if (!config.interface.dns || config.interface.dns.length === 0) {
+      issues.push('No DNS servers configured - internet may not work');
+    }
+
+    // Check allowed IPs
+    if (!config.peer.allowedIPs || config.peer.allowedIPs.length === 0) {
+      issues.push('No allowed IPs configured - traffic routing may be broken');
+    }
+
+    const isValid = issues.length === 0;
+
+    if (!isValid) {
+      console.warn('⚠️ VPN Configuration Issues:', issues);
+      ToastManager.getInstance().showToast(
+        `VPN Configuration Issues: ${issues.slice(0, 2).join(', ')}`,
+        'warning',
+      );
+    } else {
+      console.log('✅ VPN Configuration is valid');
+      ToastManager.getInstance().showToast(
+        'VPN configuration validated successfully',
+        'success',
+      );
+    }
+
+    return { isValid, issues };
+  }
+
+  /**
+   * Convert our WireGuardConfig to the module's expected format
+   */
+  private convertToWireGuardConfig(config: WireGuardConfig) {
+    // Validate endpoint exists and is not empty
+    if (!config.peer.endpoint || config.peer.endpoint.trim() === '') {
+      throw new Error('Server endpoint is missing or empty');
+    }
+
+    const endpointParts = config.peer.endpoint.split(':');
+    const serverAddress = endpointParts[0]?.trim();
+    const serverPort = parseInt(endpointParts[1] || '51820', 10);
+
+    // Validate server address is not empty
+    if (!serverAddress || serverAddress === '') {
+      throw new Error(
+        `Invalid server endpoint format: "${config.peer.endpoint}". Expected format: "domain:port" or "ip:port"`,
+      );
+    }
+
+    // Validate server port
+    if (isNaN(serverPort) || serverPort < 1 || serverPort > 65535) {
+      throw new Error(
+        `Invalid server port: ${endpointParts[1]}. Port must be between 1 and 65535`,
+      );
+    }
+
+    // Ensure DNS servers are always configured for internet access
+    const dnsServers =
+      config.interface.dns && config.interface.dns.length > 0
+        ? config.interface.dns
+        : ['1.1.1.1', '8.8.8.8']; // Cloudflare + Google as fallback
+
+    // Ensure allowedIPs includes both IPv4 and IPv6 for full internet access
+    const allowedIPs =
+      config.peer.allowedIPs && config.peer.allowedIPs.length > 0
+        ? config.peer.allowedIPs
+        : ['0.0.0.0/0', '::/0']; // All traffic through VPN
+
+    // Set reasonable MTU if not specified
+    const mtu = config.interface.mtu || 1420; // Standard WireGuard MTU
+
+    console.log('🔧 Original VPN Configuration:', {
+      serverAddress,
+      serverPort,
+      dns: dnsServers,
+      allowedIPs,
+      mtu,
+      hasPrivateKey: !!config.interface.privateKey,
+      hasPublicKey: !!config.peer.publicKey,
+      interfaceAddress: config.interface.address?.[0] || 'NOT PROVIDED',
+      endpoint: config.peer.endpoint,
+    });
+
+    // Create the base configuration with explicit validation
+    const baseConfig = {
+      privateKey: config.interface.privateKey || '',
+      publicKey: config.peer.publicKey || '',
+      serverAddress: serverAddress, // Ensure this is never empty
+      serverPort: serverPort,
+      allowedIPs,
+      dns: dnsServers,
+      mtu,
+      presharedKey: config.peer.preSharedKey,
+      // Add interface address separately from routing
+      interfaceAddress: config.interface.address?.[0] || '10.0.0.2/32',
+    };
+
+    // Validate critical fields before fixing
+    if (!baseConfig.serverAddress || baseConfig.serverAddress.trim() === '') {
+      throw new Error(
+        'Server address cannot be empty. Check endpoint configuration.',
+      );
+    }
+
+    if (!baseConfig.privateKey || baseConfig.privateKey.trim() === '') {
+      throw new Error('Private key cannot be empty');
+    }
+
+    if (!baseConfig.publicKey || baseConfig.publicKey.trim() === '') {
+      throw new Error('Public key cannot be empty');
+    }
+
+    // Fix any configuration issues
+    try {
+      const fixedConfig = fixVPNConfig(baseConfig);
+      console.log('✅ Fixed VPN Configuration:', {
+        ...fixedConfig,
+        serverAddress: fixedConfig.serverAddress, // Log to verify it's set
+      });
+
+      // Double-check serverAddress is still present after fixing
+      if (
+        !fixedConfig.serverAddress ||
+        fixedConfig.serverAddress.trim() === ''
+      ) {
+        throw new Error('Server address was lost during configuration fix');
+      }
+
+      return fixedConfig;
+    } catch (error) {
+      console.error('❌ Configuration fix failed:', error);
+      // Ensure serverAddress is preserved even if fix fails
+      if (!baseConfig.serverAddress || baseConfig.serverAddress.trim() === '') {
+        throw new Error('Server address is missing in configuration');
+      }
+      return baseConfig;
+    }
+  }
+
+  /**
+   * Map WireGuard module status to our ConnectionStatus
+   */
+  private mapWireGuardStatus(wgStatus: any): ConnectionStatus {
+    if (wgStatus.isConnected) {
+      return 'connected';
+    }
+
+    // Handle iOS status values (ACTIVE, CONNECTING, INACTIVE, ERROR, UNKNOWN)
+    // and Android status values (UP, DOWN, etc.)
+    const tunnelState = wgStatus.tunnelState?.toUpperCase() || '';
+
+    switch (tunnelState) {
+      case 'UP':
+      case 'ACTIVE':
+        return 'connected';
+      case 'DOWN':
+      case 'INACTIVE':
+        return 'disconnected';
+      case 'CONNECTING':
+        return 'connecting';
+      case 'DISCONNECTING':
+        return 'disconnecting';
+      case 'ERROR':
+        return 'error';
+      case 'UNKNOWN':
+      default:
+        return 'disconnected';
+    }
+  }
+}
+
+// Singleton instance
+let connectionManager: ConnectionManager | null = null;
+
+/**
+ * Get the connection manager instance (internal use only)
+ */
+function getConnectionManager(): ConnectionManager {
+  if (!connectionManager) {
+    connectionManager = new ConnectionManager();
+  }
+  return connectionManager;
+}
+
+/**
+ * Connect to VPN
+ */
+export async function connect(
+  config: WireGuardConfig,
+  profileId: string,
+): Promise<ConnectionResult> {
+  return getConnectionManager().connect(config, profileId);
+}
+
+/**
+ * Disconnect from VPN
+ */
+export async function disconnect(): Promise<void> {
+  return getConnectionManager().disconnect();
+}
+
+/**
+ * Get current connection status
+ */
+export async function getStatus(): Promise<ConnectionStatus> {
+  return await getConnectionManager().getStatus();
+}
+
+/**
+ * Get connection info
+ */
+export async function getConnectionInfo(): Promise<ConnectionInfo | null> {
+  return await getConnectionManager().getConnectionInfo();
+}
+
+/**
+ * Initialize VPN service
+ */
+export async function initializeVpn(): Promise<void> {
+  return getConnectionManager().initialize();
+}
+
+/**
+ * Check if VPN is supported
+ */
+export async function isVpnSupported(): Promise<boolean> {
+  return getConnectionManager().isSupported();
+}
+
+/**
+ * Get VPN mode information
+ */
+export function getVpnMode(): {
+  hasNativeModule: boolean;
+  mode: 'native' | 'fallback';
+} {
+  return {
+    hasNativeModule,
+    mode: hasNativeModule ? 'native' : 'fallback',
+  };
+}
+
+// Re-export ConnectionStatus type for external use
+export type { ConnectionStatus } from '../types/wireguard';

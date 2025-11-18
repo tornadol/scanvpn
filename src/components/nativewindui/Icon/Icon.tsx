@@ -1,5 +1,5 @@
-import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import MaterialIcons from 'react-native-vector-icons/MaterialIcons';
 import {
   SF_SYMBOLS_TO_MATERIAL_COMMUNITY_ICONS,
   SF_SYMBOLS_TO_MATERIAL_ICONS,
@@ -31,7 +31,15 @@ function Icon({
     );
   }
   if (materialIcon) {
-    return <MaterialIcons size={size} color={defaultColor} {...props} {...materialIcon} />;
+    return (
+      <MaterialIcons
+        name={name || 'help'}
+        size={size}
+        color={defaultColor}
+        {...props}
+        {...materialIcon}
+      />
+    );
   }
   const materialCommunityIconName =
     SF_SYMBOLS_TO_MATERIAL_COMMUNITY_ICONS[
@@ -48,11 +56,27 @@ function Icon({
     );
   }
   const materialIconName =
-    SF_SYMBOLS_TO_MATERIAL_ICONS[name as keyof typeof SF_SYMBOLS_TO_MATERIAL_ICONS];
+    SF_SYMBOLS_TO_MATERIAL_ICONS[
+      name as keyof typeof SF_SYMBOLS_TO_MATERIAL_ICONS
+    ];
   if (materialIconName) {
-    return <MaterialIcons name={materialIconName} size={size} color={defaultColor} {...props} />;
+    return (
+      <MaterialIcons
+        name={materialIconName}
+        size={size}
+        color={defaultColor}
+        {...props}
+      />
+    );
   }
-  return <MaterialCommunityIcons name="help" size={size} color={defaultColor} {...props} />;
+  return (
+    <MaterialCommunityIcons
+      name="help"
+      size={size}
+      color={defaultColor}
+      {...props}
+    />
+  );
 }
 
 export { Icon };

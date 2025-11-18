@@ -1,8 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Animated, Dimensions, StatusBar } from 'react-native';
-import { VariantProps, cva } from 'class-variance-authority';
-import { Text } from './Text';
-import { cn } from '@/lib/cn';
+import {
+  View,
+  Animated,
+  Dimensions,
+  StatusBar,
+  Text,
+  StyleSheet,
+} from 'react-native';
 
 export interface ToastProps {
   message: string;
@@ -13,34 +17,52 @@ export interface ToastProps {
 }
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
-const STATUS_BAR_HEIGHT = StatusBar.height || 44;
+// Fix: StatusBar does not have a 'height' property in react-native.
+// Use 44 as a fallback default for iOS, and StatusBar.currentHeight for Android.
+const STATUS_BAR_HEIGHT =
+  typeof StatusBar.currentHeight === 'number' ? StatusBar.currentHeight : 44;
 
-const toastVariants = cva(
-  'rounded-lg p-4 shadow-lg border mx-4 max-w-sm',
-  {
-    variants: {
-      type: {
-        success: 'bg-green-500 border-green-600',
-        error: 'bg-red-500 border-red-600',
-        warning: 'bg-orange-500 border-orange-600',
-        info: 'bg-blue-500 border-blue-600',
-      },
-    },
-    defaultVariants: {
-      type: 'info',
-    },
+// Simple color configuration for toast types
+const getToastColors = (type: 'success' | 'error' | 'warning' | 'info') => {
+  switch (type) {
+    case 'success':
+      return { backgroundColor: '#10B981', borderColor: '#059669' };
+    case 'error':
+      return { backgroundColor: '#DFD1D1FF', borderColor: '#DC2626' };
+    case 'warning':
+      return { backgroundColor: '#F59E0B', borderColor: '#D97706' };
+    case 'info':
+    default:
+      return { backgroundColor: '#3B82F6', borderColor: '#2563EB' };
   }
-);
+};
 
 export function Toast({
   message,
   type = 'error',
   duration = 3000,
   onHide,
-  visible = true
+  visible = true,
 }: ToastProps) {
   const [fadeAnim] = useState(new Animated.Value(0));
   const [slideAnim] = useState(new Animated.Value(-100));
+
+  const hide = useCallback(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: -100,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      onHide?.();
+    });
+  }, [fadeAnim, slideAnim, onHide]);
 
   const show = useCallback(() => {
     Animated.parallel([
@@ -61,24 +83,7 @@ export function Toast({
         hide();
       }, duration);
     }
-  }, [fadeAnim, slideAnim, duration]);
-
-  const hide = useCallback(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: -100,
-        duration: 300,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      onHide?.();
-    });
-  }, [fadeAnim, slideAnim, onHide]);
+  }, [fadeAnim, slideAnim, duration, hide]);
 
   useEffect(() => {
     if (visible) {
@@ -90,24 +95,25 @@ export function Toast({
 
   if (!visible) return null;
 
+  const colors = getToastColors(type);
+
   return (
     <View
-      className="absolute top-0 left-0 right-0 z-50 flex items-center"
-      style={{ paddingTop: STATUS_BAR_HEIGHT + 10 }}
+      style={[styles.container, { paddingTop: STATUS_BAR_HEIGHT + 10 }]}
+      pointerEvents="box-none"
     >
       <Animated.View
-        className={cn(toastVariants({ type }))}
-        style={{
-          opacity: fadeAnim,
-          transform: [{ translateY: slideAnim }],
-        }}
+        style={[
+          styles.toast,
+          colors,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          },
+        ]}
+        pointerEvents="auto"
       >
-        <Text
-          variant="body"
-          className="text-white font-medium text-center"
-        >
-          {message}
-        </Text>
+        <Text style={styles.text}>{message}</Text>
       </Animated.View>
     </View>
   );
@@ -142,11 +148,20 @@ class ToastManager {
     this.listeners.forEach(listener => listener([...this.toasts]));
   }
 
-  showToast(message: string, type: 'success' | 'error' | 'warning' | 'info' = 'error', duration = 3000) {
+  showToast(
+    message: string,
+    type: 'success' | 'error' | 'warning' | 'info' = 'error',
+    duration = 3000,
+  ) {
     const id = Date.now().toString();
     const toast: ToastItem = { id, message, type, duration };
 
-    console.log('🍞 ToastManager: showToast called', { id, message, type, duration });
+    console.log('🍞 ToastManager: showToast called', {
+      id,
+      message,
+      type,
+      duration,
+    });
 
     this.toasts.push(toast);
     this.notify();
@@ -179,13 +194,26 @@ export function useToast() {
     const manager = ToastManager.getInstance();
     const unsubscribe = manager.subscribe(setToasts);
 
-    return unsubscribe;
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
-  const showToast = useCallback((message: string, type?: 'success' | 'error' | 'warning' | 'info', duration?: number) => {
-    console.log('🍞 useToast: showToast called with', { message, type, duration });
-    return ToastManager.getInstance().showToast(message, type, duration);
-  }, []);
+  const showToast = useCallback(
+    (
+      message: string,
+      type?: 'success' | 'error' | 'warning' | 'info',
+      duration?: number,
+    ) => {
+      console.log('🍞 useToast: showToast called with', {
+        message,
+        type,
+        duration,
+      });
+      return ToastManager.getInstance().showToast(message, type, duration);
+    },
+    [],
+  );
 
   const hideToast = useCallback((id: string) => {
     console.log('🍞 useToast: hideToast called with', { id });
@@ -209,23 +237,63 @@ export function useToast() {
 export function ToastContainer() {
   const { toasts, hideToast } = useToast();
 
-  console.log('🍞 ToastContainer: Rendering with toasts:', toasts.length, toasts);
+  console.log(
+    '🍞 ToastContainer: Rendering with toasts:',
+    toasts.length,
+    toasts,
+  );
+
+  if (toasts.length === 0) {
+    return null;
+  }
+
+  // Only show the most recent toast
+  const latestToast = toasts[toasts.length - 1];
 
   return (
-    <>
-      {toasts.map((toast) => (
-        <Toast
-          key={toast.id}
-          message={toast.message}
-          type={toast.type}
-          duration={toast.duration}
-          onHide={() => hideToast(toast.id)}
-          visible={true}
-        />
-      ))}
-    </>
+    <Toast
+      key={latestToast.id}
+      message={latestToast.message}
+      type={latestToast.type}
+      duration={latestToast.duration}
+      onHide={() => hideToast(latestToast.id)}
+      visible={true}
+    />
   );
 }
 
 // Export ToastManager for direct use in utility modules
 export { ToastManager };
+
+const styles = StyleSheet.create({
+  container: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 9999,
+    alignItems: 'center',
+    pointerEvents: 'box-none',
+  },
+  toast: {
+    maxWidth: Dimensions.get('window').width * 0.9,
+    borderRadius: 8,
+    padding: 16,
+    marginHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+    borderWidth: 1,
+  },
+  text: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '500',
+    textAlign: 'center',
+  },
+});
