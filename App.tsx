@@ -37,9 +37,17 @@ function TabNavigatorWithProvider() {
     <ProfilesProvider>
       <Tab.Navigator
         screenOptions={{
-          tabBarActiveTintColor: colors.accent,
-          tabBarInactiveTintColor: 'gray',
+          tabBarActiveTintColor: colors.accent || '#007AFF',
+          tabBarInactiveTintColor: '#8E8E93',
           headerShown: false,
+          tabBarStyle: {
+            backgroundColor: '#FFFFFF',
+            borderTopWidth: 1,
+            borderTopColor: '#E5E5EA',
+            paddingBottom: 5,
+            paddingTop: 5,
+            height: 60,
+          },
         }}
       >
         <Tab.Screen
@@ -47,8 +55,12 @@ function TabNavigatorWithProvider() {
           component={HomeScreen}
           options={{
             title: 'Home',
-            tabBarIcon: ({ color, size }) => (
-              <MaterialIcons name="home" size={size || 24} color={color} />
+            tabBarIcon: ({ color, size, focused }) => (
+              <MaterialIcons
+                name="home"
+                size={size || 24}
+                color={focused ? colors.accent || '#007AFF' : '#8E8E93'}
+              />
             ),
           }}
         />
@@ -57,11 +69,11 @@ function TabNavigatorWithProvider() {
           component={ScannerScreen}
           options={{
             title: 'Scanner',
-            tabBarIcon: ({ color, size }) => (
+            tabBarIcon: ({ color, size, focused }) => (
               <MaterialIcons
                 name="qr-code-scanner"
                 size={size || 24}
-                color={color}
+                color={focused ? colors.accent || '#007AFF' : '#8E8E93'}
               />
             ),
           }}
@@ -71,8 +83,12 @@ function TabNavigatorWithProvider() {
           component={ProfilesScreen}
           options={{
             title: 'Profiles',
-            tabBarIcon: ({ color, size }) => (
-              <MaterialIcons name="folder" size={size || 24} color={color} />
+            tabBarIcon: ({ color, size, focused }) => (
+              <MaterialIcons
+                name="folder"
+                size={size || 24}
+                color={focused ? colors.accent || '#007AFF' : '#8E8E93'}
+              />
             ),
           }}
         />
@@ -81,8 +97,12 @@ function TabNavigatorWithProvider() {
           component={SettingsScreen}
           options={{
             title: 'Settings',
-            tabBarIcon: ({ color, size }) => (
-              <MaterialIcons name="settings" size={size || 24} color={color} />
+            tabBarIcon: ({ color, size, focused }) => (
+              <MaterialIcons
+                name="settings"
+                size={size || 24}
+                color={focused ? colors.accent || '#007AFF' : '#8E8E93'}
+              />
             ),
           }}
         />
