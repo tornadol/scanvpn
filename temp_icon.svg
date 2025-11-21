@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+    <rect width="1024" height="1024" fill="#0f172a" />
+    <!-- Viewfinder corners -->
+    <path d="M256 256 h128 v64 h-128 v128 h-64 v-192 z" fill="white" /> <!-- Top Left -->
+    <path d="M768 256 v128 h-64 v-128 h-128 v-64 h192 z" fill="white" /> <!-- Top Right -->
+    <path d="M256 768 v-128 h64 v128 h128 v64 h-192 z" fill="white" /> <!-- Bottom Left -->
+    <path d="M768 768 h-128 v-64 h128 v-128 h64 v192 z" fill="white" /> <!-- Bottom Right -->
+    <!-- Center scan line -->
+    <rect x="320" y="500" width="384" height="24" rx="12" fill="#38bdf8" />
+</svg>
