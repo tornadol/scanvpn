@@ -20,6 +20,7 @@ module.exports = {
     'nativewind/babel',
   ],
   plugins: [
+    'react-native-reanimated/plugin',
     ...nativewindPlugins,
     [
       'module-resolver',

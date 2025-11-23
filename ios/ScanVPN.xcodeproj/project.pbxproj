@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -12,6 +12,7 @@
 		2D5C80092ECAFF3D002F4622 /* hermesvm.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D5C80082ECAFF3D002F4622 /* hermesvm.xcframework */; };
 		2D9F92632ECC6A7B00E770D7 /* NetworkExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D7384DD2ECC62EE0026308A /* NetworkExtension.framework */; };
 		2D9F926C2ECC6A7B00E770D7 /* tunnel.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 2D9F92622ECC6A7B00E770D7 /* tunnel.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		2DDE21C62ED05812005B505D /* main.jsbundle in Resources */ = {isa = PBXBuildFile; fileRef = 2DDE21C52ED05811005B505D /* main.jsbundle */; };
 		465329A9E05142FCB9552609 /* Foundation.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 850CC0D9E96A4A79B765AB0B /* Foundation.ttf */; };
 		46B17A5EF22C49F3AF5923F0 /* AntDesign.ttf in Resources */ = {isa = PBXBuildFile; fileRef = D0A63E5A4F214505835F5F11 /* AntDesign.ttf */; };
 		4966A5C3D34A436E9007992C /* FontAwesome6_Brands.ttf in Resources */ = {isa = PBXBuildFile; fileRef = ABF3953677C347F6BE379C17 /* FontAwesome6_Brands.ttf */; };
@@ -30,7 +31,6 @@
 		C7F23128DDE943D19DDCFD4C /* EvilIcons.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 207ED625155845768F954E18 /* EvilIcons.ttf */; };
 		D3634E8B94BB4D52A25C0CB8 /* Fontisto.ttf in Resources */ = {isa = PBXBuildFile; fileRef = CA68C88048734EA2B170DDE8 /* Fontisto.ttf */; };
 		DCDEC7F0B9C84A059B9E152A /* MaterialIcons.ttf in Resources */ = {isa = PBXBuildFile; fileRef = BAE563E9D7CC4D1385841894 /* MaterialIcons.ttf */; };
-		E6F088CCF4098D23F251D31D /* libPods-ScanVPN.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 6585F617D38BC141D93A1601 /* libPods-ScanVPN.a */; };
 		F7C9BDA734F04BD7A01CAE6B /* FontAwesome6_Solid.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 1029DC971D4746F8B04C28A3 /* FontAwesome6_Solid.ttf */; };
 		FD8C2F0974DE4E579C8A9C38 /* Entypo.ttf in Resources */ = {isa = PBXBuildFile; fileRef = B07EF67FA27E48C89F78ABA6 /* Entypo.ttf */; };
 		FF1DEB6937664452B00241A8 /* Zocial.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 8C769749F05043B48F31F29E /* Zocial.ttf */; };
@@ -82,13 +82,11 @@
 		2D7384DD2ECC62EE0026308A /* NetworkExtension.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NetworkExtension.framework; path = System/Library/Frameworks/NetworkExtension.framework; sourceTree = SDKROOT; };
 		2D9F92622ECC6A7B00E770D7 /* tunnel.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = tunnel.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		2DBD662D2ECADCA000555694 /* ScanVPNRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = ScanVPNRelease.entitlements; path = ScanVPN/ScanVPNRelease.entitlements; sourceTree = "<group>"; };
+		2DDE21C52ED05811005B505D /* main.jsbundle */ = {isa = PBXFileReference; lastKnownFileType = text; path = main.jsbundle; sourceTree = "<group>"; };
 		33FED9FB9557403395414BD9 /* SimpleLineIcons.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = SimpleLineIcons.ttf; path = "../node_modules/react-native-vector-icons/Fonts/SimpleLineIcons.ttf"; sourceTree = "<group>"; };
 		40DCDEF1C5884B6299AB8A4C /* MaterialCommunityIcons.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = MaterialCommunityIcons.ttf; path = "../node_modules/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf"; sourceTree = "<group>"; };
 		43E75A84B0A0464EA8AE8345 /* Ionicons.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = Ionicons.ttf; path = "../node_modules/react-native-vector-icons/Fonts/Ionicons.ttf"; sourceTree = "<group>"; };
 		5005FC530C9C4910BFE0C89D /* FontAwesome5_Brands.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = FontAwesome5_Brands.ttf; path = "../node_modules/react-native-vector-icons/Fonts/FontAwesome5_Brands.ttf"; sourceTree = "<group>"; };
-		6203A104954E9D3BE8EC7AF6 /* Pods-ScanVPN.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ScanVPN.release.xcconfig"; path = "Target Support Files/Pods-ScanVPN/Pods-ScanVPN.release.xcconfig"; sourceTree = "<group>"; };
-		6585F617D38BC141D93A1601 /* libPods-ScanVPN.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-ScanVPN.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		6B042D4E186CDA197FE7B7E6 /* Pods-ScanVPN.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ScanVPN.debug.xcconfig"; path = "Target Support Files/Pods-ScanVPN/Pods-ScanVPN.debug.xcconfig"; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = ScanVPN/AppDelegate.swift; sourceTree = "<group>"; };
 		8162067888FF418892E030B7 /* FontAwesome5_Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = FontAwesome5_Regular.ttf; path = "../node_modules/react-native-vector-icons/Fonts/FontAwesome5_Regular.ttf"; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = ScanVPN/LaunchScreen.storyboard; sourceTree = "<group>"; };
@@ -138,7 +136,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				2D5C80092ECAFF3D002F4622 /* hermesvm.xcframework in Frameworks */,
-				E6F088CCF4098D23F251D31D /* libPods-ScanVPN.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -198,7 +195,6 @@
 			children = (
 				2D5C80082ECAFF3D002F4622 /* hermesvm.xcframework */,
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				6585F617D38BC141D93A1601 /* libPods-ScanVPN.a */,
 				2D7384DD2ECC62EE0026308A /* NetworkExtension.framework */,
 			);
 			name = Frameworks;
@@ -214,6 +210,7 @@
 		83CBB9F61A601CBA00E9B192 = {
 			isa = PBXGroup;
 			children = (
+				2DDE21C52ED05811005B505D /* main.jsbundle */,
 				13B07FAE1A68108700A75B9A /* ScanVPN */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				2D9F92642ECC6A7B00E770D7 /* tunnel */,
@@ -239,8 +236,6 @@
 		BBD78D7AC51CEA395F1C20DB /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				6B042D4E186CDA197FE7B7E6 /* Pods-ScanVPN.debug.xcconfig */,
-				6203A104954E9D3BE8EC7AF6 /* Pods-ScanVPN.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -252,13 +247,10 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "ScanVPN" */;
 			buildPhases = (
-				88379207A41A565A208F2BCC /* [CP] Check Pods Manifest.lock */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
-				1BFC164ECE5956FD21C605AD /* [CP] Embed Pods Frameworks */,
-				C6612D2D6D9E5121F8A56A03 /* [CP] Copy Pods Resources */,
 				2D5C800B2ECAFF3D002F4622 /* Embed Frameworks */,
 				2D7384E82ECC62EE0026308A /* Embed Foundation Extensions */,
 			);
@@ -355,6 +347,7 @@
 				276569F5474F4A0BBD9C5069 /* Octicons.ttf in Resources */,
 				51A41610EFD84FFE8F08C97A /* SimpleLineIcons.ttf in Resources */,
 				FF1DEB6937664452B00241A8 /* Zocial.ttf in Resources */,
+				2DDE21C62ED05812005B505D /* main.jsbundle in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -383,62 +376,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "set -e\n\nWITH_ENVIRONMENT=\"$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh\"\nREACT_NATIVE_XCODE=\"$REACT_NATIVE_PATH/scripts/react-native-xcode.sh\"\n\n/bin/sh -c \"$WITH_ENVIRONMENT $REACT_NATIVE_XCODE\"\n";
-		};
-		1BFC164ECE5956FD21C605AD /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-ScanVPN/Pods-ScanVPN-frameworks-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-ScanVPN/Pods-ScanVPN-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-ScanVPN/Pods-ScanVPN-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		88379207A41A565A208F2BCC /* [CP] Check Pods Manifest.lock */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
-				"${PODS_ROOT}/Manifest.lock",
-			);
-			name = "[CP] Check Pods Manifest.lock";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(DERIVED_FILE_DIR)/Pods-ScanVPN-checkManifestLockResult.txt",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
-			showEnvVarsInLog = 0;
-		};
-		C6612D2D6D9E5121F8A56A03 /* [CP] Copy Pods Resources */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-ScanVPN/Pods-ScanVPN-resources-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Copy Pods Resources";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-ScanVPN/Pods-ScanVPN-resources-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-ScanVPN/Pods-ScanVPN-resources.sh\"\n";
-			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -471,7 +408,6 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 6B042D4E186CDA197FE7B7E6 /* Pods-ScanVPN.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -503,7 +439,6 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 6203A104954E9D3BE8EC7AF6 /* Pods-ScanVPN.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -511,7 +446,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = Z95L383U84;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = ScanVPN/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
