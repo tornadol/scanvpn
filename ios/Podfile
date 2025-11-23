@@ -31,6 +31,9 @@ target 'ScanVPN' do
   # WireGuard VPN module
   pod 'react-native-wireguard-vpn-connect', :path => '../node_modules/react-native-wireguard-vpn-connect'
 
+  # Worklets (required by react-native-reanimated)
+  pod 'RNWorklets', :path => '../node_modules/react-native-worklets'
+
   pod 'glog', :podspec => '../node_modules/react-native/third-party-podspecs/glog.podspec'
   post_install do |installer|
     react_native_post_install(
