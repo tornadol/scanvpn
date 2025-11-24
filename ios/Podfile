@@ -103,16 +103,8 @@ target 'ScanVPN' do
       end
     end
 
-    # Fix the standard RN bundle phase script path problem if present
-    installer.pods_project.targets.each do |target|
-      target.build_phases.each do |phase|
-        next unless phase.respond_to?(:name)
-        if phase.name&.include?("Bundle React Native code")
-          # keep script simple and robust
-          phase.shell_script = phase.shell_script.gsub('with-environment.sh', 'set -e')
-        end
-      end
-    end
+    # Note: Bundle React Native code script is now fixed directly in project.pbxproj
+    # No need to modify it here
 
     # Fix duplicate Hermes framework issue by removing direct copy phases
     installer.pods_project.targets.each do |target|
