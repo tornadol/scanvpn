@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ConnectionInfo } from '@/lib/types/wireguard';
-import { View, ScrollView } from 'react-native';
+import { View, ScrollView, Linking, Platform } from 'react-native';
 import { Text } from '@/components/nativewindui/Text';
 import {
   SafeAreaView,
@@ -107,6 +107,28 @@ const HomeScreen: React.FC = () => {
     }
   };
 
+  const openVPNSettings = async () => {
+    if (Platform.OS === 'ios') {
+      // Try to open VPN settings directly
+      const vpnSettingsUrl = 'App-Prefs:root=General&path=VPN';
+      const canOpen = await Linking.canOpenURL(vpnSettingsUrl);
+
+      if (canOpen) {
+        try {
+          await Linking.openURL(vpnSettingsUrl);
+        } catch (error) {
+          // Fallback to general settings
+          await Linking.openSettings();
+        }
+      } else {
+        // Fallback to general settings
+        await Linking.openSettings();
+      }
+    } else {
+      await Linking.openSettings();
+    }
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-white" edges={[]}>
       <ScrollView
@@ -189,6 +211,33 @@ const HomeScreen: React.FC = () => {
                 </View>
               )}
           </View>
+
+          {/* VPN Permission Help - Show when disconnected or error */}
+          {(connectionStatus === 'disconnected' ||
+            connectionStatus === 'error') &&
+            Platform.OS === 'ios' && (
+              <View className="mt-4 rounded-xl border border-yellow-200 bg-yellow-50 p-4">
+                <View className="mb-2 flex-row items-center">
+                  <Icon name="info.circle" size={18} color="#F59E0B" />
+                  <Text className="ml-2 text-sm font-semibold text-yellow-800">
+                    VPN Permission Required
+                  </Text>
+                </View>
+                <Text className="mb-3 text-xs text-yellow-700">
+                  To connect to VPN, you need to enable VPN access in iOS
+                  Settings. Go to Settings → General → VPN & Device Management →
+                  VPN and enable ScanVPN.
+                </Text>
+                <Button
+                  onPress={openVPNSettings}
+                  className="rounded-lg bg-yellow-500 min-h-[40px]"
+                >
+                  <Text className="text-sm font-semibold text-white">
+                    Open VPN Settings
+                  </Text>
+                </Button>
+              </View>
+            )}
 
           {/* Disconnect Button - Only show when connected */}
           {connectionStatus === 'connected' && (

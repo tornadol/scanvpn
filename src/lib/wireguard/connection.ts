@@ -93,26 +93,30 @@ class ConnectionManager {
             errorMessage.toLowerCase().includes('vpn configuration');
 
           if (isPermissionError) {
-            ToastManager.getInstance().showToast(
-              'VPN permission required. Go to Settings > General > VPN & Device Management to enable VPN access.',
-              'error',
-            );
+            const permissionMessage =
+              'VPN permission required. Go to Settings > General > VPN & Device Management to enable VPN access for ScanVPN.';
+            ToastManager.getInstance().showToast(permissionMessage, 'error');
             console.log(
               '📱 VPN Permission Error - User needs to enable VPN in iOS Settings',
             );
+            // Don't throw here - allow the app to continue, but mark as needing permission
           } else if (
             errorMessage.includes('NetworkExtension') ||
-            errorMessage.includes('NEVPNManager')
+            errorMessage.includes('NEVPNManager') ||
+            errorMessage.includes('extension')
           ) {
             ToastManager.getInstance().showToast(
               'Network Extension not configured. Please rebuild the app with proper entitlements.',
               'error',
             );
           } else {
-            ToastManager.getInstance().showToast(
-              `Failed to initialize VPN: ${errorMessage}`,
-              'error',
-            );
+            // For other errors, show a more helpful message
+            const friendlyMessage =
+              errorMessage.includes('stale') ||
+              errorMessage.includes('configuration is stale')
+                ? 'VPN configuration needs to be refreshed. This will be done automatically when connecting.'
+                : `Failed to initialize VPN: ${errorMessage}`;
+            ToastManager.getInstance().showToast(friendlyMessage, 'error');
           }
 
           this.isInitialized = true;
@@ -331,16 +335,39 @@ class ConnectionManager {
 
       this.updateStatus('connecting');
 
-      // Optionally request VPN permission, but don't fail if unavailable
+      // Request VPN permission on iOS - this is critical for real devices
       if (typeof WireGuardVpnModule.requestVpnPermission === 'function') {
         try {
+          console.log('📱 Requesting VPN permission...');
           await WireGuardVpnModule.requestVpnPermission();
+          console.log('✅ VPN permission request completed');
         } catch (permissionError) {
-          console.warn(
-            'VPN permission request failed (non-critical):',
-            permissionError,
-          );
+          const errorMsg =
+            permissionError instanceof Error
+              ? permissionError.message
+              : String(permissionError);
+          console.warn('⚠️ VPN permission request failed:', errorMsg);
+
+          // On iOS, VPN permissions must be enabled in Settings
+          // Provide helpful guidance to the user
+          if (
+            errorMsg.includes('permission') ||
+            errorMsg.includes('denied') ||
+            errorMsg.includes('not authorized')
+          ) {
+            ToastManager.getInstance().showToast(
+              'VPN permission required. Please go to Settings > General > VPN & Device Management to enable VPN access for ScanVPN.',
+              'error',
+            );
+            throw new Error(
+              'VPN permission denied. Please enable VPN access in iOS Settings.',
+            );
+          }
         }
+      } else {
+        console.warn(
+          '⚠️ requestVpnPermission method not available in native module',
+        );
       }
 
       // Validate config
@@ -352,10 +379,36 @@ class ConnectionManager {
       }
 
       const wgConfig = this.convertToWireGuardConfig(config);
-      await WireGuardVpnModule.connect(wgConfig);
+
+      console.log('🔌 Attempting to connect to VPN...');
+      try {
+        await WireGuardVpnModule.connect(wgConfig);
+        console.log('✅ VPN connect() call completed');
+      } catch (connectError) {
+        const errorMsg =
+          connectError instanceof Error
+            ? connectError.message
+            : String(connectError);
+        console.error('❌ VPN connect() failed:', errorMsg);
+
+        // Check for permission-related errors
+        if (
+          errorMsg.includes('permission') ||
+          errorMsg.includes('denied') ||
+          errorMsg.includes('not authorized') ||
+          errorMsg.includes('VPN configuration')
+        ) {
+          throw new Error(
+            'VPN permission denied. Please enable VPN access in iOS Settings > General > VPN & Device Management.',
+          );
+        }
+
+        // Re-throw other errors
+        throw connectError;
+      }
 
       // Wait a moment for connection to start
-      await new Promise<void>(resolve => setTimeout(resolve, 1000));
+      await new Promise<void>(resolve => setTimeout(resolve, 1500));
       let status = await WireGuardVpnModule.getStatus();
       let mappedStatus = this.mapWireGuardStatus(status);
 
@@ -363,14 +416,27 @@ class ConnectionManager {
       let isConnected =
         status.isConnected || tunnelState === 'UP' || tunnelState === 'ACTIVE';
 
-      // Retry up to 5 times if connecting
+      console.log('📊 Initial connection status:', {
+        isConnected,
+        tunnelState,
+        mappedStatus,
+        rawStatus: status,
+      });
+
+      // Retry up to 8 times if connecting (give more time on real devices)
       let attempts = 0;
+      const maxAttempts = 8;
       while (
         !isConnected &&
         (tunnelState === 'CONNECTING' || mappedStatus === 'connecting') &&
-        attempts < 5
+        attempts < maxAttempts
       ) {
-        await new Promise<void>(resolve => setTimeout(resolve, 1000));
+        console.log(
+          `⏳ Waiting for connection... (attempt ${
+            attempts + 1
+          }/${maxAttempts})`,
+        );
+        await new Promise<void>(resolve => setTimeout(resolve, 1500));
         status = await WireGuardVpnModule.getStatus();
         mappedStatus = this.mapWireGuardStatus(status);
         tunnelState = status.tunnelState?.toUpperCase() || '';
@@ -378,11 +444,19 @@ class ConnectionManager {
           status.isConnected ||
           tunnelState === 'UP' ||
           tunnelState === 'ACTIVE';
+
+        console.log(`📊 Status check ${attempts + 1}:`, {
+          isConnected,
+          tunnelState,
+          mappedStatus,
+        });
+
         if (
           tunnelState === 'INACTIVE' ||
           tunnelState === 'DOWN' ||
           tunnelState === 'ERROR'
         ) {
+          console.log('❌ Connection failed - tunnel state:', tunnelState);
           break;
         }
         attempts++;
@@ -397,15 +471,42 @@ class ConnectionManager {
           }`;
 
         // Provide more helpful error if possible
-        let userFriendly =
-          tunnelState === 'INACTIVE' &&
-          (errorMsg.includes('extension') ||
+        let userFriendly = errorMsg;
+
+        // Check for common iOS VPN issues
+        if (tunnelState === 'INACTIVE' || tunnelState === 'DOWN') {
+          if (
+            errorMsg.includes('extension') ||
             errorMsg.includes('provider') ||
-            errorMsg.includes('bundle'))
-            ? 'Network Extension is required for VPN. Please check your app settings and configuration.'
-            : tunnelState === 'ERROR'
-            ? 'VPN connection error. Please check your configuration and network.'
-            : errorMsg;
+            errorMsg.includes('bundle')
+          ) {
+            userFriendly =
+              'Network Extension not configured. Please rebuild the app with proper entitlements.';
+          } else if (
+            errorMsg.includes('permission') ||
+            errorMsg.includes('denied') ||
+            errorMsg.includes('not authorized')
+          ) {
+            userFriendly =
+              'VPN permission denied. Go to Settings > General > VPN & Device Management and enable VPN access for ScanVPN.';
+          } else {
+            userFriendly =
+              'VPN connection failed. Please check your configuration and ensure VPN permissions are enabled in iOS Settings.';
+          }
+        } else if (tunnelState === 'ERROR') {
+          userFriendly =
+            'VPN connection error. Please check your configuration, network connection, and VPN permissions in iOS Settings.';
+        } else if (tunnelState === 'UNKNOWN' || !tunnelState) {
+          userFriendly =
+            'VPN status unknown. Please ensure VPN permissions are enabled in Settings > General > VPN & Device Management.';
+        }
+
+        console.error('❌ VPN connection failed:', {
+          tunnelState,
+          errorMsg,
+          userFriendly,
+          status,
+        });
 
         ToastManager.getInstance().showToast(
           userFriendly.split('\n')[0],
@@ -469,33 +570,68 @@ class ConnectionManager {
    */
   async disconnect(): Promise<void> {
     if (this.currentStatus === 'disconnected') {
+      console.log('ℹ️ Already disconnected, skipping disconnect');
       return;
     }
 
     try {
+      console.log('🔌 Disconnecting from VPN...');
       this.updateStatus('disconnecting');
 
       if (this.hasNativeModule && WireGuardVpnModule) {
         try {
+          // Verify disconnect method exists
+          if (typeof WireGuardVpnModule.disconnect !== 'function') {
+            throw new Error('WireGuard module missing disconnect method');
+          }
+
           // Disconnect from real VPN
           await WireGuardVpnModule.disconnect();
-          ToastManager.getInstance().showToast(
-            'VPN disconnected successfully',
-            'success',
-          );
+          console.log('✅ VPN disconnect() call completed');
+
+          // Wait a moment for disconnection to complete
+          await new Promise<void>(resolve => setTimeout(resolve, 1000));
+
+          // Verify disconnection
+          const status = await WireGuardVpnModule.getStatus();
+          const mappedStatus = this.mapWireGuardStatus(status);
+          console.log('📊 Disconnect status check:', { status, mappedStatus });
+
+          if (mappedStatus === 'disconnected') {
+            ToastManager.getInstance().showToast(
+              'VPN disconnected successfully',
+              'success',
+            );
+          } else {
+            console.warn('⚠️ VPN may still be connected after disconnect call');
+            ToastManager.getInstance().showToast(
+              'VPN disconnection initiated. Please check VPN status.',
+              'info',
+            );
+          }
         } catch (nativeDisconnectError) {
-          console.error(
-            'Failed to disconnect from VPN:',
-            nativeDisconnectError,
-          );
-          ToastManager.getInstance().showToast(
-            'Failed to disconnect from VPN. Please check your device settings.',
-            'warning',
-          );
+          const errorMsg =
+            nativeDisconnectError instanceof Error
+              ? nativeDisconnectError.message
+              : String(nativeDisconnectError);
+          console.error('❌ Failed to disconnect from VPN:', errorMsg);
+
+          // Provide helpful error message
+          if (errorMsg.includes('permission') || errorMsg.includes('denied')) {
+            ToastManager.getInstance().showToast(
+              'VPN permission issue. Please check VPN settings in iOS Settings.',
+              'warning',
+            );
+          } else {
+            ToastManager.getInstance().showToast(
+              'Failed to disconnect from VPN. You may need to disconnect manually in iOS Settings.',
+              'warning',
+            );
+          }
           // Don't throw error, continue with cleanup
-          this.hasNativeModule = false;
         }
       } else {
+        console.warn('⚠️ Native VPN module not available for disconnect');
         ToastManager.getInstance().showToast(
           'No active VPN connection to disconnect',
           'info',
@@ -505,29 +641,26 @@ class ConnectionManager {
       // Clear active profile
       try {
         await setActiveProfileId(null);
+        console.log('✅ Active profile cleared');
       } catch (profileError) {
-        console.error('Failed to clear active profile:', profileError);
-        ToastManager.getInstance().showToast(
-          'Failed to clear active profile. Please check VPN settings.',
-          'warning',
-        );
+        console.error('❌ Failed to clear active profile:', profileError);
+        // Don't show toast for profile cleanup errors - not critical
       }
 
       // Clear connection info
       this.connectionInfo = null;
 
       this.updateStatus('disconnected');
-      ToastManager.getInstance().showToast(
-        'VPN disconnected successfully',
-        'success',
-      );
+      console.log('✅ VPN disconnected and cleaned up');
     } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      console.error('❌ Disconnect error:', errorMsg);
       ToastManager.getInstance().showToast(
-        'Failed to disconnect from VPN. Please check device settings.',
+        'Failed to disconnect from VPN. Please check device settings or disconnect manually in iOS Settings.',
         'error',
       );
-      this.updateStatus('error');
-      throw error;
+      this.updateStatus('disconnected'); // Still mark as disconnected for UI
+      // Don't throw - allow UI to update
     }
   }
 
