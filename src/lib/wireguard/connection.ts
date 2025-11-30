@@ -167,6 +167,7 @@ class ConnectionManager {
    * Get current connection status
    * Note: VPN connections persist across app restarts, so we check actual status
    * even if the manager hasn't been initialized yet.
+   * Validates that connection is real by checking for active profile and config.
    */
   async getStatus(): Promise<ConnectionStatus> {
     // Try to initialize in background if not already initialized (non-blocking)
@@ -182,7 +183,7 @@ class ConnectionManager {
         // Verify getStatus method exists
         if (typeof WireGuardVpnModule.getStatus !== 'function') {
           console.warn('WireGuard module missing getStatus method');
-          return this.currentStatus || 'disconnected';
+          return 'disconnected';
         }
 
         const wgStatus: any = await WireGuardVpnModule.getStatus();
@@ -190,11 +191,68 @@ class ConnectionManager {
         // Validate response
         if (!wgStatus || typeof wgStatus !== 'object') {
           console.warn('Invalid status response from native module:', wgStatus);
-          return this.currentStatus || 'disconnected';
+          return 'disconnected';
         }
 
         // Map and cache the status
-        const mappedStatus = this.mapWireGuardStatus(wgStatus);
+        let mappedStatus = this.mapWireGuardStatus(wgStatus);
+
+        // Validate connection - if status says connected, verify we have real config
+        if (mappedStatus === 'connected') {
+          try {
+            // Import here to avoid circular dependency
+            const { getActiveProfile } = await import('./storage');
+            const activeProfile = await getActiveProfile();
+
+            // If no active profile, it's not a real connection
+            if (!activeProfile) {
+              console.warn(
+                '⚠️ Status shows connected but no active profile found - marking as disconnected',
+              );
+              mappedStatus = 'disconnected';
+              this.currentStatus = 'disconnected';
+              this.connectionInfo = null;
+            } else if (
+              !activeProfile.config ||
+              !activeProfile.config.interface ||
+              !activeProfile.config.peer
+            ) {
+              // Profile exists but config is invalid
+              console.warn(
+                '⚠️ Status shows connected but profile has invalid config - marking as disconnected',
+              );
+              mappedStatus = 'disconnected';
+              this.currentStatus = 'disconnected';
+              this.connectionInfo = null;
+            } else {
+              // Valid connection - verify we have connection info
+              if (!this.connectionInfo) {
+                // Try to reconstruct connection info
+                const addresses = Array.isArray(
+                  activeProfile.config.interface.address,
+                )
+                  ? activeProfile.config.interface.address
+                  : [activeProfile.config.interface.address];
+
+                this.connectionInfo = {
+                  status: 'connected',
+                  profileId: activeProfile.id,
+                  connectedAt:
+                    activeProfile.lastUsed || new Date().toISOString(),
+                  endpoint: activeProfile.config.peer?.endpoint,
+                  virtualIP: addresses[0],
+                };
+              }
+            }
+          } catch (profileError) {
+            console.error('Error validating connection profile:', profileError);
+            // If we can't validate, assume disconnected for safety
+            mappedStatus = 'disconnected';
+            this.currentStatus = 'disconnected';
+            this.connectionInfo = null;
+          }
+        }
+
         this.currentStatus = mappedStatus;
 
         // If we got a valid status, mark as initialized (status check succeeded)
@@ -209,6 +267,7 @@ class ConnectionManager {
           isConnected: wgStatus.isConnected,
           tunnelState: wgStatus.tunnelState,
           wasInitialized: this.isInitialized,
+          validated: mappedStatus === 'connected' ? 'yes' : 'no',
         });
 
         return mappedStatus;
@@ -226,41 +285,89 @@ class ConnectionManager {
         if (isCriticalError) {
           console.error('Critical error getting VPN status:', error);
           this.hasNativeModule = false;
+          this.currentStatus = 'disconnected';
+          this.connectionInfo = null;
           return 'disconnected';
         }
 
-        // For transient errors, fall back to cached status
-        console.warn('Error getting VPN status (using cached):', errorMessage);
+        // For transient errors, validate cached status
+        console.warn(
+          'Error getting VPN status (validating cached):',
+          errorMessage,
+        );
 
-        // If we have a cached status and it's not disconnected, use it
-        // (VPN might still be connected even if status check failed)
-        if (this.currentStatus && this.currentStatus !== 'disconnected') {
-          console.log('Using cached status:', this.currentStatus);
-          return this.currentStatus;
+        // Validate cached status if it says connected
+        if (this.currentStatus === 'connected') {
+          try {
+            const { getActiveProfile } = await import('./storage');
+            const activeProfile = await getActiveProfile();
+
+            if (
+              !activeProfile ||
+              !activeProfile.config ||
+              !activeProfile.config.interface ||
+              !activeProfile.config.peer
+            ) {
+              console.warn(
+                '⚠️ Cached connected status invalid - no valid profile/config',
+              );
+              this.currentStatus = 'disconnected';
+              this.connectionInfo = null;
+              return 'disconnected';
+            }
+          } catch (validationError) {
+            console.error('Error validating cached status:', validationError);
+            this.currentStatus = 'disconnected';
+            this.connectionInfo = null;
+            return 'disconnected';
+          }
         }
 
-        // Return disconnected if no cached status or error occurred
-        return 'disconnected';
+        // Return validated cached status or disconnected
+        return this.currentStatus || 'disconnected';
       }
     } else {
-      // Module not available - return cached status or disconnected
+      // Module not available - return disconnected (can't validate without module)
       console.log('VPN status check: Native module not available');
-      return this.currentStatus || 'disconnected';
+      this.currentStatus = 'disconnected';
+      this.connectionInfo = null;
+      return 'disconnected';
     }
   }
 
   /**
    * Get detailed connection information
    * Reconstructs connection info from active profile if VPN is connected but info is missing
+   * Only returns info if connection is validated and has real config
    */
   async getConnectionInfo(): Promise<ConnectionInfo | null> {
-    // If we have cached connection info, return it
+    // If we have cached connection info, validate it's still valid
     if (this.connectionInfo) {
-      return this.connectionInfo;
+      // Validate the cached info is still valid
+      try {
+        const { getActiveProfile } = await import('./storage');
+        const activeProfile = await getActiveProfile();
+
+        if (
+          activeProfile &&
+          activeProfile.config &&
+          activeProfile.config.interface &&
+          activeProfile.config.peer &&
+          activeProfile.id === this.connectionInfo.profileId
+        ) {
+          return this.connectionInfo;
+        } else {
+          // Cached info is invalid, clear it
+          console.warn('⚠️ Cached connection info is invalid - clearing');
+          this.connectionInfo = null;
+        }
+      } catch (error) {
+        console.error('Error validating cached connection info:', error);
+        this.connectionInfo = null;
+      }
     }
 
-    // If no cached info, check if VPN is actually connected
-    // If connected, reconstruct info from active profile
+    // If no cached info, check if VPN is actually connected with valid config
     const currentStatus = await this.getStatus();
     if (currentStatus === 'connected') {
       try {
@@ -268,7 +375,13 @@ class ConnectionManager {
         const { getActiveProfile } = await import('./storage');
         const activeProfile = await getActiveProfile();
 
-        if (activeProfile && activeProfile.config) {
+        // Validate profile has valid config structure
+        if (
+          activeProfile &&
+          activeProfile.config &&
+          activeProfile.config.interface &&
+          activeProfile.config.peer
+        ) {
           // Handle address as array or single string
           const addresses = Array.isArray(
             activeProfile.config.interface.address,
@@ -292,13 +405,22 @@ class ConnectionManager {
           );
           return this.connectionInfo;
         } else {
-          console.warn('⚠️ VPN is connected but no active profile found');
+          console.warn(
+            '⚠️ VPN status is connected but profile/config is invalid',
+          );
+          // Clear connection info if profile is invalid
+          this.connectionInfo = null;
+          return null;
         }
       } catch (error) {
         console.error('Error reconstructing connection info:', error);
+        this.connectionInfo = null;
+        return null;
       }
     }
 
+    // Not connected or invalid - clear connection info
+    this.connectionInfo = null;
     return null;
   }
 

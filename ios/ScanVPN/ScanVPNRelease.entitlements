@@ -8,7 +8,7 @@
 	</array>
 	<key>com.apple.security.application-groups</key>
 	<array>
-		<string>group.com.watawaste.ScanVPN</string>
+		<string>group.com.vdlaptrinh1.ScanVPN</string>
 	</array>
 </dict>
 </plist>

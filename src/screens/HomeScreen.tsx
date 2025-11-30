@@ -34,11 +34,53 @@ const HomeScreen: React.FC = () => {
           getActiveProfile(),
         ]);
 
-        setConnectionStatus(status);
+        // Validate connection status - only show connected if we have real evidence
+        let validatedStatus = status;
+
+        // If status says connected but we don't have connection info or active profile,
+        // it might be a false positive - verify it's actually connected
+        if (status === 'connected') {
+          // Require both connection info and active profile to show as connected
+          if (!info || !profile) {
+            console.warn(
+              '⚠️ Status shows connected but missing info/profile - verifying...',
+            );
+            // Double-check the status
+            const recheckStatus = await getStatus();
+            if (recheckStatus !== 'connected' || !info || !profile) {
+              console.log(
+                '❌ False positive connection detected - marking as disconnected',
+              );
+              validatedStatus = 'disconnected';
+              setConnectionInfo(null);
+              setActiveProfile(null);
+            }
+          } else {
+            // Verify the profile has valid config
+            if (
+              !profile.config ||
+              !profile.config.interface ||
+              !profile.config.peer
+            ) {
+              console.warn(
+                '⚠️ Active profile missing valid config - marking as disconnected',
+              );
+              validatedStatus = 'disconnected';
+              setConnectionInfo(null);
+              setActiveProfile(null);
+            }
+          }
+        }
+
+        setConnectionStatus(validatedStatus);
         setConnectionInfo(info);
         setActiveProfile(profile);
       } catch (error) {
         console.error('Error checking connection status:', error);
+        // On error, assume disconnected
+        setConnectionStatus('disconnected');
+        setConnectionInfo(null);
+        setActiveProfile(null);
       } finally {
         setLoading(false);
       }
@@ -46,7 +88,7 @@ const HomeScreen: React.FC = () => {
 
     checkConnectionStatus();
 
-    // Check status every 5 seconds
+    // Check status every 2 seconds
     const interval = setInterval(checkConnectionStatus, 2000);
 
     return () => clearInterval(interval);
@@ -163,17 +205,20 @@ const HomeScreen: React.FC = () => {
               </View>
             </View>
 
-            {/* Connection Details */}
+            {/* Connection Details - Only show if we have valid connection info */}
             {connectionStatus === 'connected' &&
               activeProfile &&
-              connectionInfo && (
+              connectionInfo &&
+              activeProfile.config &&
+              activeProfile.config.interface &&
+              activeProfile.config.peer && (
                 <View>
                   <View className="h-px bg-gray-200 my-3" />
 
                   <View className="flex-row justify-between mb-3">
                     <Text className="text-xs text-gray-500">Profile</Text>
                     <Text className="text-xs font-medium text-gray-800">
-                      {activeProfile.name}
+                      {activeProfile.name || 'Unnamed Profile'}
                     </Text>
                   </View>
 
@@ -239,19 +284,24 @@ const HomeScreen: React.FC = () => {
               </View>
             )}
 
-          {/* Disconnect Button - Only show when connected */}
-          {connectionStatus === 'connected' && (
-            <View className="mt-6">
-              <Button
-                onPress={handleDisconnect}
-                className="rounded-xl bg-red-500 min-h-[56px]"
-              >
-                <Text className="text-lg font-semibold text-white">
-                  Disconnect VPN
-                </Text>
-              </Button>
-            </View>
-          )}
+          {/* Disconnect Button - Only show when connected with valid config */}
+          {connectionStatus === 'connected' &&
+            activeProfile &&
+            connectionInfo &&
+            activeProfile.config &&
+            activeProfile.config.interface &&
+            activeProfile.config.peer && (
+              <View className="mt-6">
+                <Button
+                  onPress={handleDisconnect}
+                  className="rounded-xl bg-red-500 min-h-[56px]"
+                >
+                  <Text className="text-lg font-semibold text-white">
+                    Disconnect VPN
+                  </Text>
+                </Button>
+              </View>
+            )}
         </View>
       </ScrollView>
     </SafeAreaView>
