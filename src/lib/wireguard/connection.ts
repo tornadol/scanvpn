@@ -711,23 +711,49 @@ class ConnectionManager {
           await WireGuardVpnModule.disconnect();
           console.log('✅ VPN disconnect() call completed');
 
-          // Wait a moment for disconnection to complete
-          await new Promise<void>(resolve => setTimeout(resolve, 1000));
+          // Wait for disconnection to complete and verify
+          // Use fewer checks to avoid excessive waiting and be more accepting of iOS behavior
+          let isActuallyDisconnected = false;
+          let retryCount = 0;
+          const maxRetries = 3; // Reduced to avoid excessive waiting
 
-          // Verify disconnection
-          const status = await WireGuardVpnModule.getStatus();
-          const mappedStatus = this.mapWireGuardStatus(status);
-          console.log('📊 Disconnect status check:', { status, mappedStatus });
+          while (!isActuallyDisconnected && retryCount < maxRetries) {
+            // Wait for iOS to update VPN Management state
+            await new Promise<void>(resolve => setTimeout(resolve, 1000));
 
-          if (mappedStatus === 'disconnected') {
+            const status = await WireGuardVpnModule.getStatus();
+            const mappedStatus = this.mapWireGuardStatus(status);
+            const tunnelState = status.tunnelState?.toUpperCase() || '';
+
+            console.log(`📊 Disconnect status check ${retryCount + 1}/${maxRetries}:`, {
+              status,
+              mappedStatus,
+              tunnelState,
+              isConnected: status.isConnected
+            });
+
+            // Primary check: if isConnected is false, we're disconnected
+            isActuallyDisconnected = !status.isConnected;
+
+            // Accept disconnect even if tunnelState hasn't updated yet
+            // iOS VPN Management UI updates can be delayed
+            if (isActuallyDisconnected) {
+              console.log('✅ VPN tunnel disconnected (tunnelState UI may update separately)');
+              break;
+            }
+
+            retryCount++;
+          }
+
+          if (isActuallyDisconnected) {
             ToastManager.getInstance().showToast(
               'VPN disconnected successfully',
               'success',
             );
           } else {
-            console.warn('⚠️ VPN may still be connected after disconnect call');
+            console.warn('⚠️ VPN may still be connecting or there was an issue');
             ToastManager.getInstance().showToast(
-              'VPN disconnection initiated. Please check VPN status.',
+              'VPN disconnect initiated. Check status in a moment.',
               'info',
             );
           }
@@ -781,7 +807,9 @@ class ConnectionManager {
         'Failed to disconnect from VPN. Please check device settings or disconnect manually in iOS Settings.',
         'error',
       );
-      this.updateStatus('disconnected'); // Still mark as disconnected for UI
+
+      this.connectionInfo = null;
+      this.updateStatus('disconnected');
       // Don't throw - allow UI to update
     }
   }
@@ -985,6 +1013,7 @@ class ConnectionManager {
         return 'connected';
       case 'DOWN':
       case 'INACTIVE':
+      case 'DISCONNECTED':
         return 'disconnected';
       case 'CONNECTING':
         return 'connecting';
