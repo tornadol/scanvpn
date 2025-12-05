@@ -32,7 +32,20 @@ target 'ScanVPN' do
   pod 'react-native-wireguard-vpn-connect', :path => '../node_modules/react-native-wireguard-vpn-connect'
 
   pod 'glog', :podspec => '../node_modules/react-native/third-party-podspecs/glog.podspec'
+
   post_install do |installer|
+    # Fix glog prepare script by replacing the problematic shell script entirely
+    installer.pods_project.targets.each do |target|
+      if target.name == 'glog'
+        target.build_phases.each do |phase|
+          if phase.respond_to?(:shell_script) && phase.shell_script
+            # Replace the entire prepare script with our fixed version
+            fixed_script = File.read("scripts/ios-configure-glog-fixed.sh")
+            phase.shell_script = fixed_script
+          end
+        end
+      end
+    end
     react_native_post_install(
       installer,
       config[:reactNativePath],

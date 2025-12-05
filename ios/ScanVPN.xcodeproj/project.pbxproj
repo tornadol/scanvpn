@@ -8,13 +8,13 @@
 
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
+		18B17D6E38E2F9241A39CA67 /* libPods-ScanVPN.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 291EC56741540E0256268434 /* libPods-ScanVPN.a */; };
 		2D5C80092ECAFF3D002F4622 /* hermesvm.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D5C80082ECAFF3D002F4622 /* hermesvm.xcframework */; };
 		2D9F92632ECC6A7B00E770D7 /* NetworkExtension.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2D7384DD2ECC62EE0026308A /* NetworkExtension.framework */; };
 		2D9F926C2ECC6A7B00E770D7 /* tunnel.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 2D9F92622ECC6A7B00E770D7 /* tunnel.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		A6C5B6E064F1DAD6B9024CCB /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
-		E6F088CCF4098D23F251D31D /* libPods-ScanVPN.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 6585F617D38BC141D93A1601 /* libPods-ScanVPN.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -56,14 +56,14 @@
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = ScanVPN/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = ScanVPN/Info.plist; sourceTree = "<group>"; };
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = ScanVPN/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		291EC56741540E0256268434 /* libPods-ScanVPN.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-ScanVPN.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		2D5C80082ECAFF3D002F4622 /* hermesvm.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; name = hermesvm.xcframework; path = "Pods/hermes-engine/destroot/Library/Frameworks/universal/hermesvm.xcframework"; sourceTree = "<group>"; };
 		2D5C800D2ECB073E002F4622 /* ScanVPNDebug.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = ScanVPNDebug.entitlements; path = ScanVPN/ScanVPNDebug.entitlements; sourceTree = "<group>"; };
 		2D7384DD2ECC62EE0026308A /* NetworkExtension.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = NetworkExtension.framework; path = System/Library/Frameworks/NetworkExtension.framework; sourceTree = SDKROOT; };
 		2D9F92622ECC6A7B00E770D7 /* tunnel.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = tunnel.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		2DBD662D2ECADCA000555694 /* ScanVPNRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = ScanVPNRelease.entitlements; path = ScanVPN/ScanVPNRelease.entitlements; sourceTree = "<group>"; };
-		6203A104954E9D3BE8EC7AF6 /* Pods-ScanVPN.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ScanVPN.release.xcconfig"; path = "Target Support Files/Pods-ScanVPN/Pods-ScanVPN.release.xcconfig"; sourceTree = "<group>"; };
-		6585F617D38BC141D93A1601 /* libPods-ScanVPN.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-ScanVPN.a"; sourceTree = BUILT_PRODUCTS_DIR; };
-		6B042D4E186CDA197FE7B7E6 /* Pods-ScanVPN.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ScanVPN.debug.xcconfig"; path = "Target Support Files/Pods-ScanVPN/Pods-ScanVPN.debug.xcconfig"; sourceTree = "<group>"; };
+		62BB63497018F9E00D3B7861 /* Pods-ScanVPN.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ScanVPN.debug.xcconfig"; path = "Target Support Files/Pods-ScanVPN/Pods-ScanVPN.debug.xcconfig"; sourceTree = "<group>"; };
+		6B6B71A442CE09CCF287D585 /* Pods-ScanVPN.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-ScanVPN.release.xcconfig"; path = "Target Support Files/Pods-ScanVPN/Pods-ScanVPN.release.xcconfig"; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = ScanVPN/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = ScanVPN/LaunchScreen.storyboard; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
@@ -96,7 +96,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2D5C80092ECAFF3D002F4622 /* hermesvm.xcframework in Frameworks */,
-				E6F088CCF4098D23F251D31D /* libPods-ScanVPN.a in Frameworks */,
+				18B17D6E38E2F9241A39CA67 /* libPods-ScanVPN.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -130,8 +130,8 @@
 			children = (
 				2D5C80082ECAFF3D002F4622 /* hermesvm.xcframework */,
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				6585F617D38BC141D93A1601 /* libPods-ScanVPN.a */,
 				2D7384DD2ECC62EE0026308A /* NetworkExtension.framework */,
+				291EC56741540E0256268434 /* libPods-ScanVPN.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -170,8 +170,8 @@
 		BBD78D7AC51CEA395F1C20DB /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				6B042D4E186CDA197FE7B7E6 /* Pods-ScanVPN.debug.xcconfig */,
-				6203A104954E9D3BE8EC7AF6 /* Pods-ScanVPN.release.xcconfig */,
+				62BB63497018F9E00D3B7861 /* Pods-ScanVPN.debug.xcconfig */,
+				6B6B71A442CE09CCF287D585 /* Pods-ScanVPN.release.xcconfig */,
 			);
 			path = Pods;
 			sourceTree = "<group>";
@@ -183,15 +183,15 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "ScanVPN" */;
 			buildPhases = (
-				88379207A41A565A208F2BCC /* [CP] Check Pods Manifest.lock */,
+				92F47245F6AE572D2BECF266 /* [CP] Check Pods Manifest.lock */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
-				1BFC164ECE5956FD21C605AD /* [CP] Embed Pods Frameworks */,
-				C6612D2D6D9E5121F8A56A03 /* [CP] Copy Pods Resources */,
 				2D5C800B2ECAFF3D002F4622 /* Embed Frameworks */,
 				2D7384E82ECC62EE0026308A /* Embed Foundation Extensions */,
+				925AE86DFF827838DB243451 /* [CP] Embed Pods Frameworks */,
+				E9DC35EF257BD58EA41E5C29 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -296,7 +296,7 @@
 			shellPath = /bin/sh;
 			shellScript = "set -e\n\n# Set REACT_NATIVE_PATH if not already set\nif [ -z \"$REACT_NATIVE_PATH\" ]; then\n  export REACT_NATIVE_PATH=\"${PODS_ROOT}/../../node_modules/react-native\"\nfi\n\nWITH_ENVIRONMENT=\"${REACT_NATIVE_PATH}/scripts/xcode/with-environment.sh\"\nREACT_NATIVE_XCODE=\"${REACT_NATIVE_PATH}/scripts/react-native-xcode.sh\"\n\n# Check if scripts exist\nif [ ! -f \"$WITH_ENVIRONMENT\" ]; then\n  echo \"error: $WITH_ENVIRONMENT not found\" >&2\n  exit 1\nfi\n\nif [ ! -f \"$REACT_NATIVE_XCODE\" ]; then\n  echo \"error: $REACT_NATIVE_XCODE not found\" >&2\n  exit 1\nfi\n\n# Execute with environment\n\"$WITH_ENVIRONMENT\" \"$REACT_NATIVE_XCODE\"\n";
 		};
-		1BFC164ECE5956FD21C605AD /* [CP] Embed Pods Frameworks */ = {
+		925AE86DFF827838DB243451 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -313,7 +313,7 @@
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-ScanVPN/Pods-ScanVPN-frameworks.sh\"\n";
 			showEnvVarsInLog = 0;
 		};
-		88379207A41A565A208F2BCC /* [CP] Check Pods Manifest.lock */ = {
+		92F47245F6AE572D2BECF266 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -335,7 +335,7 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		C6612D2D6D9E5121F8A56A03 /* [CP] Copy Pods Resources */ = {
+		E9DC35EF257BD58EA41E5C29 /* [CP] Copy Pods Resources */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -383,7 +383,7 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 6B042D4E186CDA197FE7B7E6 /* Pods-ScanVPN.debug.xcconfig */;
+			baseConfigurationReference = 62BB63497018F9E00D3B7861 /* Pods-ScanVPN.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -417,15 +417,17 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 6203A104954E9D3BE8EC7AF6 /* Pods-ScanVPN.release.xcconfig */;
+			baseConfigurationReference = 6B6B71A442CE09CCF287D585 /* Pods-ScanVPN.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = ScanVPN/ScanVPNRelease.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
+				CODE_SIGN_STYLE = Manual;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = Z95L383U84;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = KA5YZ9UDR7;
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				INFOPLIST_FILE = ScanVPN/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
@@ -440,9 +442,10 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.watawaste.ScanVPN;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vdlaptrinh1.ScanVPN;
 				PRODUCT_NAME = ScanVPN;
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "profile 2";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
@@ -458,12 +461,11 @@
 				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_ENTITLEMENTS = tunnel/tunnel.entitlements;
-				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
-				CODE_SIGN_STYLE = Manual;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = "";
-				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = KA5YZ9UDR7;
+				DEVELOPMENT_TEAM = Z95L383U84;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = tunnel/Info.plist;
@@ -479,10 +481,9 @@
 				MARKETING_VERSION = 1.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.vdlaptrinh1.ScanVPN.tunnel;
+				PRODUCT_BUNDLE_IDENTIFIER = com.watawaste.ScanVPN.tunnel;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "profile name 3";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -500,11 +501,13 @@
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
 				CODE_SIGN_ENTITLEMENTS = tunnel/tunnelRelease.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Distribution";
+				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
 				CURRENT_PROJECT_VERSION = 1;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = Z95L383U84;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=iphoneos*]" = KA5YZ9UDR7;
 				GCC_C_LANGUAGE_STANDARD = gnu17;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = tunnel/Info.plist;
@@ -519,9 +522,10 @@
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MARKETING_VERSION = 1.0;
 				MTL_FAST_MATH = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.watawaste.ScanVPN.tunel;
+				PRODUCT_BUNDLE_IDENTIFIER = com.vdlaptrinh1.ScanVPN.tunnel;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "profile name 3";
 				SKIP_INSTALL = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				TARGETED_DEVICE_FAMILY = "1,2";

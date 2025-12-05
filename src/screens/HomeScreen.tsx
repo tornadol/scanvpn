@@ -8,11 +8,7 @@ import {
 } from 'react-native-safe-area-context';
 import { Icon } from '@/components/nativewindui/Icon';
 import { Button } from '@/components/nativewindui/Button';
-import {
-  getStatus,
-  disconnect,
-  getConnectionInfo,
-} from '@/lib/wireguard/connection';
+import { getStatus, getConnectionInfo } from '@/lib/wireguard/connection';
 import { ConnectionStatus } from '@/lib/types/wireguard';
 import { getActiveProfile } from '@/lib/wireguard/storage';
 import { BRAND_COLORS } from '@/constants/colors';
@@ -136,48 +132,33 @@ const HomeScreen: React.FC = () => {
 
   const handleDisconnect = async () => {
     try {
-      await disconnect();
+      // await disconnect();
 
-      // Wait for iOS VPN Management to update its state
-      await new Promise<void>(resolve => setTimeout(() => resolve(), 1500));
+      // Simple status check after disconnect
+      setTimeout(async () => {
+        try {
+          const status = await getStatus();
+          const info = await getConnectionInfo();
+          const profile = await getActiveProfile();
 
-      // Check final status to ensure UI is in sync with native VPN state
-      const finalStatus = await getStatus();
-      const finalConnectionInfo = await getConnectionInfo();
-      const finalActiveProfile = await getActiveProfile();
+          setConnectionStatus(status);
+          setConnectionInfo(info);
+          setActiveProfile(profile);
 
-      setConnectionStatus(finalStatus);
-      setConnectionInfo(finalConnectionInfo);
-      setActiveProfile(finalActiveProfile);
-
-      if (finalStatus === 'disconnected') {
-        setActiveProfile(null);
-        setConnectionInfo(null);
-
-        // Additional check to see if we can reconnect (test tunnel state)
-        console.log('✅ VPN disconnected successfully - tunnel state should be clean for reconnection');
-      } else {
-        console.log('⚠️ VPN Management may still show as active after app disconnect');
-        console.log('💡 This is usually a display issue - the tunnel should be properly disconnected');
-      }
+          console.log('📊 Status after disconnect:', {
+            status,
+            hasProfile: !!profile,
+          });
+        } catch (error) {
+          console.error('Error checking status after disconnect:', error);
+          setConnectionStatus('disconnected');
+        }
+      }, 1000);
     } catch (error) {
       console.error('Error disconnecting VPN:', error);
-      // Even on error, try to get current status and force UI to disconnected
-      try {
-        const status = await getStatus();
-        setConnectionStatus(status);
-        if (status !== 'disconnected') {
-          console.log('Forcing UI to disconnected state due to error');
-          setConnectionStatus('disconnected');
-          setActiveProfile(null);
-          setConnectionInfo(null);
-        }
-      } catch (statusError) {
-        console.error('Error getting status after disconnect error:', statusError);
-        setConnectionStatus('disconnected');
-        setActiveProfile(null);
-        setConnectionInfo(null);
-      }
+      setConnectionStatus('disconnected');
+      setActiveProfile(null);
+      setConnectionInfo(null);
     }
   };
 
@@ -317,7 +298,7 @@ const HomeScreen: React.FC = () => {
             )}
 
           {/* Disconnect Button - Only show when connected with valid config */}
-          {connectionStatus === 'connected' &&
+          {/* {connectionStatus === 'connected' &&
             activeProfile &&
             connectionInfo &&
             activeProfile.config &&
@@ -333,7 +314,7 @@ const HomeScreen: React.FC = () => {
                   </Text>
                 </Button>
               </View>
-            )}
+            )} */}
         </View>
       </ScrollView>
     </SafeAreaView>

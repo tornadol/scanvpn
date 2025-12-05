@@ -25,6 +25,7 @@ import {
   getVpnMode,
   isVpnSupported,
   getStatus,
+  forceVpnManagementActive,
 } from '@/lib/wireguard/connection';
 import { Platform } from 'react-native';
 import jpeg from 'jpeg-js';
@@ -218,18 +219,25 @@ export function ScannerProvider({ children }: { children: ReactNode }) {
       isConnectingRef.current = true;
       actions.setConnecting(true);
 
-      // Check if already connected
+      // Check if already connected - if so, disconnect and replace with new connection
       const currentStatus = await getStatus();
       console.log('📊 Current VPN status:', currentStatus);
 
       if (currentStatus === 'connected') {
+        console.log('🔄 VPN already connected - disconnecting to replace with new connection...');
         showToast(
-          'Please disconnect from current VPN before scanning a new QR code',
-          'warning',
+          'Replacing current VPN connection with new configuration...',
+          'info',
         );
-        actions.setConnecting(false);
-        isConnectingRef.current = false;
-        return;
+
+        try {
+          await disconnect();
+          // Brief wait for disconnection to complete
+          await new Promise<void>(resolve => setTimeout(() => resolve(), 1000));
+        } catch (disconnectError) {
+          console.warn('⚠️ Error disconnecting current VPN:', disconnectError);
+          // Continue anyway - the new connection should override
+        }
       }
 
       const vpnSupported = await isVpnSupported();
@@ -243,6 +251,20 @@ export function ScannerProvider({ children }: { children: ReactNode }) {
       const result = await connect(state.scannedData.parsed, profileId);
       if (result.success) {
         console.log('✅ VPN connection established successfully');
+
+        // Force VPN Management to show ACTIVE after successful scan and connection
+        try {
+          console.log(
+            '🔄 Forcing VPN Management to ACTIVE state after scan...',
+          );
+          await forceVpnManagementActive();
+          console.log('✅ VPN Management forced to ACTIVE state');
+        } catch (forceActiveError) {
+          console.warn(
+            '⚠️ Could not force VPN Management to ACTIVE:',
+            forceActiveError,
+          );
+        }
 
         const endpointHost =
           state.scannedData.parsed.peer.endpoint.split(':')[0];
@@ -500,6 +522,20 @@ export function ScannerProvider({ children }: { children: ReactNode }) {
 
       if (result.success) {
         console.log('✅ VPN connection reloaded successfully');
+
+        // Force VPN Management to show ACTIVE after successful reload
+        try {
+          console.log(
+            '🔄 Forcing VPN Management to ACTIVE state after reload...',
+          );
+          await forceVpnManagementActive();
+          console.log('✅ VPN Management forced to ACTIVE state');
+        } catch (forceActiveError) {
+          console.warn(
+            '⚠️ Could not force VPN Management to ACTIVE:',
+            forceActiveError,
+          );
+        }
 
         showToast('VPN connection successfully reloaded', 'success');
 
